@@ -1,0 +1,108 @@
+# host-hygiene catalog: DATA ONLY. Nothing here is executed by `scan`; `apply` (phase 3) will.
+# Fields, pipe-separated:  id | needs | path glob (~ ok) | class | removal | cost
+#   needs : toolchain id from `profile` (android gradle dart fvm xcode docker node rust brew) or `any`
+#           (non-developer hosts run only `any` rows, see profile classification)
+#   class : safe-regenerable | ask-first | never      (rows are matched top to bottom; first path wins)
+#   removal: the tool's own command where one exists; `rm-verified` = rm -rf of the path AFTER the
+#            apply step re-verifies it (ignored by git for project dirs, or inside the cache root)
+# Per-project dirs (build/, .dart_tool, node_modules, target ...) and unused Gradle versions are
+# detected in code (see scan: projects, gradle-unused) because they need git/wrapper lookups.
+#
+# --- android -------------------------------------------------------------------------------
+android-avd|android|~/.android/avd/*.avd|ask-first|avdmanager delete avd -n <name>|emulator data + installed apps lost; roles in a project's .uat may point at it
+android-sysimg|android|~/Library/Android/sdk/system-images/*/*|ask-first|sdkmanager --uninstall <pkg>|re-download 1-2 GB; AVDs using it stop booting
+android-ndk|android|~/Library/Android/sdk/ndk/*|ask-first|sdkmanager --uninstall <pkg>|re-download when a build needs that NDK
+android-buildtools|android|~/Library/Android/sdk/build-tools/*|ask-first|sdkmanager --uninstall <pkg>|re-download when a build needs it
+android-platforms|android|~/Library/Android/sdk/platforms/*|ask-first|sdkmanager --uninstall <pkg>|re-download when a build targets it
+android-cmake|android|~/Library/Android/sdk/cmake/*|ask-first|sdkmanager --uninstall <pkg>|re-download when a build needs it
+# --- gradle (shared; per-version logic lives in scan) ---------------------------------------
+gradle-modules|gradle|~/.gradle/caches/modules-2|ask-first|rm-verified|every project re-downloads its dependencies on next build (network needed)
+gradle-daemon|gradle|~/.gradle/daemon|safe-regenerable|rm-verified|only daemon logs; stop daemons first (gradle --stop)
+# --- dart / flutter ------------------------------------------------------------------------
+pub-cache|dart|~/.pub-cache|ask-first|flutter pub cache clean|next pub get re-downloads packages (network needed)
+fvm-sdk|fvm|~/fvm/versions/*|ask-first|fvm remove <version>|re-download ~1 GB if a project pins it
+# --- xcode / ios ---------------------------------------------------------------------------
+xcode-derived|xcode|~/Library/Developer/Xcode/DerivedData/*|safe-regenerable|rm-verified|next iOS build of that project is slower once
+xcode-archives|xcode|~/Library/Developer/Xcode/Archives|ask-first|rm-verified|archives are the shipped builds and their dSYMs; lose crash symbolication
+xcode-devicesupport|xcode|~/Library/Developer/Xcode/iOS DeviceSupport/*|ask-first|rm-verified|re-created (slowly) next time that device version connects
+xcode-sim-devices|xcode|~/Library/Developer/CoreSimulator/Devices|ask-first|xcrun simctl delete unavailable|simulator data lost for removed devices; `delete unavailable` is the safe first step
+xcode-sim-caches|xcode|~/Library/Developer/CoreSimulator/Caches|safe-regenerable|rm-verified|simulators rebuild dyld caches on next boot
+# --- containers ----------------------------------------------------------------------------
+docker-data|docker|~/Library/Containers/com.docker.docker|ask-first|docker system prune|images/volumes pruned; named volumes hold data, use prune WITHOUT --volumes first
+# --- other toolchains ----------------------------------------------------------------------
+npm-cache|node|~/.npm/_cacache|safe-regenerable|npm cache clean --force|packages re-downloaded on next install
+cargo-registry|rust|~/.cargo/registry|ask-first|rm-verified|crates re-downloaded on next build
+rustup-toolchains|rust|~/.rustup/toolchains/*|ask-first|rustup toolchain uninstall <name>|re-download if a project needs it
+maven-repo|gradle|~/.m2/repository|ask-first|rm-verified|dependencies re-downloaded
+homebrew-cache|brew|~/Library/Caches/Homebrew|safe-regenerable|brew cleanup -s|bottles re-downloaded on next install
+# --- developer caches (K3): from kb/*.md entries whose path AND removal are measured or sourced online. Must stay above the
+#     generic app-caches / dot-cache rows (first path wins). `needs` here is checked by dc_has in scripts/devcatalog.sh.
+# node
+npm-npx-cache|node|~/.npm/_npx|safe-regenerable|npm cache npx rm|next `npx <pkg>` re-downloads and re-installs it (network needed)
+pnpm-store|node|~/Library/pnpm/store|ask-first|pnpm store prune|prune frees only packages no project references; projects linked to removed packages re-download on next install
+bun-cache|node|~/.bun/install/cache|safe-regenerable|bun pm cache rm|next bun install re-downloads; projects using the global store need `bun install` again
+corepack-cache|node|~/.cache/node/corepack|safe-regenerable|corepack cache clean|package-manager shims re-downloaded on next use (network needed)
+node-gyp-headers|node|~/Library/Caches/node-gyp|safe-regenerable|rm-verified|Node headers re-downloaded when a native addon next builds (network needed)
+playwright-browsers|node|~/Library/Caches/ms-playwright|ask-first|rm-verified|browsers re-downloaded (hundreds of MB, network) by `npx playwright install`; tests fail until then
+puppeteer-browsers|node|~/.cache/puppeteer|ask-first|rm-verified|Chrome re-downloaded (hundreds of MB, network) on next install or launch
+cypress-binary-cache|node|~/Library/Caches/Cypress|ask-first|rm-verified|Cypress binary re-downloaded (several hundred MB, network) by `cypress install`
+electron-download-cache|node|~/Library/Caches/electron|safe-regenerable|rm-verified|Electron zips re-downloaded on next install or build (network needed)
+deno-cache|node|~/Library/Caches/deno|safe-regenerable|deno clean|remote modules re-downloaded on next run (network needed)
+# python
+pip-cache|python|~/Library/Caches/pip|safe-regenerable|pip cache purge|wheels re-downloaded and rebuilt on next install (network needed)
+uv-cache|python|~/.cache/uv|safe-regenerable|uv cache clean|packages re-downloaded on next uv run or sync (network needed)
+pyenv-versions|python|~/.pyenv/versions/*|ask-first|pyenv uninstall <version>|re-download and rebuild from source (minutes); refused if a project or the global file pins it
+# go
+go-mod-cache|go|~/go/pkg/mod|safe-regenerable|go clean -modcache|every module re-downloaded on next build (network needed)
+go-build-cache|go|~/Library/Caches/go-build|safe-regenerable|go clean -cache|next build recompiles everything once (slower, no network)
+# rust (cargo-registry is above in other toolchains)
+cargo-git|rust|~/.cargo/git|ask-first|rm-verified|git dependencies re-cloned on next build (network needed); offline builds fail until then
+# jvm / kotlin / gradle
+gradle-transforms|gradle|~/.gradle/caches/transforms-*|ask-first|rm-verified|artifact transforms recomputed from modules-2 on next build (slower once); run gradle --stop first
+intellij-caches|jvm|~/Library/Caches/JetBrains/*|ask-first|rm-verified|IDE re-indexes projects on next open (minutes to an hour); close the IDE first; settings are elsewhere and untouched
+kotlin-native-konan|jvm|~/.konan/dependencies|ask-first|rm-verified|Kotlin/Native toolchains re-downloaded (hundreds of MB to GB, network) on next native build
+# ruby / php / dotnet / ios
+rbenv-versions|ruby|~/.rbenv/versions/*|ask-first|rbenv uninstall <version>|rebuild from source (minutes); refused if a project or the global file pins it
+composer-cache|php|~/.composer/cache|safe-regenerable|composer clear-cache|packages re-downloaded on next install (network needed)
+nuget-packages|dotnet|~/.nuget/packages|safe-regenerable|dotnet nuget locals global-packages --clear|packages restored again on next build (network needed)
+cocoapods-cache|cocoapods|~/Library/Caches/CocoaPods|safe-regenerable|pod cache clean --all|pods re-downloaded on next pod install (network needed)
+# --- K3b: data/ml, devops, game (from kb/data-ml.md, kb/devops-containers-cloud.md, kb/game-graphics.md). `needs` ids ml/devops/game are
+#     checked by dc2_has in scripts/devcatalog2.sh. report-only rows are listed with supported=n and REFUSED by apply. Per-project rows
+#     (jupyter .ipynb_checkpoints, .terraform, Unity Library/Temp, Godot .godot, Unreal Intermediate) and the TF_PLUGIN_CACHE_DIR cache
+#     are found in code (dc2_project_rows / dc2_extra_rows), not here, because they need marker files, git or an environment variable.
+# data / ml
+hf-hub-cache|ml|~/.cache/huggingface/hub|ask-first|rm-verified|removes EVERY cached model, dataset and space (weights re-download from the hub: GBs, network; gated or deleted repos cannot be re-fetched; often one large model dominates). Prefer `hf cache ls` then `hf cache rm model/<org>/<name>` for one model
+hf-xet-cache|ml|~/.cache/huggingface/xet|safe-regenerable|rm-verified|xet shards re-downloaded on the next upload; an interrupted upload loses its resume state; downloaded models are not stored here
+torch-hub-cache|ml|~/.cache/torch/hub|ask-first|rm-verified|pretrained checkpoints re-download on next load (network); a .pt you saved into this folder yourself cannot be regenerated, check the file names first
+wandb-cache|ml|~/.cache/wandb|safe-regenerable|rm-verified|downloaded artifacts re-download from W&B (network and login needed); run directories in a project's wandb/ are not here
+ollama-models|ml|~/.ollama/models|ask-first|report-only: ollama ls, then ollama rm <model> by hand|REPORT-ONLY, apply refuses: removal is per model with `ollama rm` (blobs are shared, never rm them); models made with `ollama create` may have no other copy
+lmstudio-models|ml|~/.lmstudio/models|ask-first|report-only: delete a model in LM Studio My Models by hand|REPORT-ONLY, apply refuses: no documented removal command; imported or side-loaded models may have no other copy
+kaggle-cache|ml|~/.cache/kagglehub|ask-first|report-only: delete subfolders of ~/.cache/kagglehub by hand|REPORT-ONLY, apply refuses: no clearing command is documented; never touch ~/.kaggle (credentials)
+# devops
+kube-cache|devops|~/.kube/cache|safe-regenerable|rm-verified|kubectl re-fetches API discovery on next use (short delay, network); ~/.kube/config is not touched
+helm-cache|devops|~/Library/Caches/helm|safe-regenerable|rm-verified|`helm repo update` refetches the chart indexes (network); the repo list in the helm config dir is untouched
+vagrant-boxes|devops|~/.vagrant.d/boxes|ask-first|report-only: vagrant box list, then vagrant box remove <name> by hand|REPORT-ONLY, apply refuses: boxes are removed per name with `vagrant box remove` (or `vagrant box prune` for old versions); each box re-downloads on next `vagrant up` (hundreds of MB, network)
+# game
+unity-upm-global-cache|game|~/Library/Caches/Unity/upm|safe-regenerable|rm-verified|Unity re-downloads registry packages on next resolve (network); close the Editor first
+godot-cache-dir|game|~/Library/Caches/Godot|safe-regenerable|rm-verified|Godot re-creates it on demand; close Godot first
+# --- any host (also the whole non-developer catalog) ---------------------------------------
+app-cache-google|any|~/Library/Caches/Google|ask-first|rm-verified|Chrome/Drive caches rebuild; first page loads slower
+app-caches|any|~/Library/Caches/*|ask-first|rm-verified|per-app caches rebuild; app slower once. Close the app first
+dot-cache|any|~/.cache/*|ask-first|rm-verified|tool caches rebuild
+editor-cache|any|~/Library/Application Support/Code/Cache*|safe-regenerable|rm-verified|VS Code rebuilds on next launch
+user-logs|any|~/Library/Logs/*|safe-regenerable|rm-verified|old logs lost
+trash|any|~/.Trash|ask-first|empty Trash in Finder|permanent; check what is in it first
+downloads|any|~/Downloads|never|report-only|user documents; listed so you can review, never proposed for deletion
+mail-attachments|any|~/Library/Containers/com.apple.mail/Data/Library/Mail Downloads|ask-first|rm-verified|attachments re-fetchable from the server only if still on it
+# --- non-developer additions: chat/mail caches (ask-first; message databases are never listed or touched) ---
+whatsapp-media|any|~/Library/Group Containers/group.net.whatsapp.WhatsApp.shared/Message/Media|ask-first|rm-verified|photos/videos received; gone for good unless the chat backup or the sender still has them
+telegram-media|any|~/Library/Group Containers/*keepcoder.Telegram/stable/account-*/postbox/media|ask-first|rm-verified|Telegram re-downloads from the cloud on demand, except secret chats
+messages-attachments|any|~/Library/Messages/Attachments|ask-first|report-only|iMessage photos/files; not regenerable unless iCloud Messages holds them; delete in the Messages app, not here
+# --- never: user data, listed so you can see it, never proposed, apply refuses ---------------------------------
+documents|any|~/Documents|never|report-only|user documents
+desktop|any|~/Desktop|never|report-only|user files
+photos-library|any|~/Pictures/*.photoslibrary|never|report-only|your photos; manage inside Photos
+keychains|any|~/Library/Keychains|never|report-only|passwords and certificates
+browser-chrome|any|~/Library/Application Support/Google/Chrome|never|report-only|browser profile: logins, bookmarks, history
+browser-firefox|any|~/Library/Application Support/Firefox/Profiles|never|report-only|browser profile: logins, bookmarks, history
+browser-safari|any|~/Library/Safari|never|report-only|browser profile: bookmarks, history

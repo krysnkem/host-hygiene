@@ -1,0 +1,10 @@
+# built or personal: not part of the source
+tui/hh_tui
+tui/.dart_tool/
+dist/
+apply-log.txt
+STATUS.md
+docs/tui-designs.html
+docs/tui-design-options.pdf
+.DS_Store
+*.b

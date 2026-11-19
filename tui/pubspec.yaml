@@ -1,0 +1,7 @@
+name: hh_tui
+description: Guided journey front end for host-hygiene (the shell scripts stay the engine).
+publish_to: none
+environment:
+  sdk: ^3.5.0
+dependencies:
+  nocterm: 0.9.0   # pinned: young package, API may change
