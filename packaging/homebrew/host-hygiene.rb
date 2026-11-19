@@ -1,10 +1,9 @@
 # Template for the tap formula (Formula/host-hygiene.rb in the homebrew-tap repo).
-# Fill the sha256 printed by tools/make-release.sh after the final build.
 class HostHygiene < Formula
   desc "Find what eats disk, memory and CPU on a Mac, and clear it only when you say so"
   homepage "https://github.com/krysnkem/host-hygiene"
   url "https://github.com/krysnkem/host-hygiene/releases/download/v1.0.0/host-hygiene-1.0.0.tar.gz"
-  sha256 "FILL_FROM_make-release"
+  sha256 "e3a931aa17c07ddc7c6bc2844b959967c6938d6ddc4782b4effbe742301b8e5a"
   license "MIT"
 
   depends_on :macos

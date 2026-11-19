@@ -1,0 +1,205 @@
+<title>host hygiene</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one calm column on paper; the terminal is the only dark object in the light theme, so the eye lands on it. Boldness lives in the type and the terminal; everything else stays quiet. */
+:root {
+  --ink: #10282B; --muted: #4A6A68; --paper: #F3F8F6; --card: #FFFFFF; --line: #D3E2DD;
+  --clinic: #0F8F7E; --clinic-ink: #FFFFFF; --warn: #C77D00; --crit: #B93838; --ok: #1E8E5A;
+  --term-bg: #0B1A1C; --term-fg: #D8ECE8; --term-dim: #7FA39D; --term-sel: #3CC8B2;
+  --display: "Bricolage Grotesque", "Avenir Next", "Helvetica Neue", sans-serif;
+  --body: "Instrument Sans", "Avenir Next", "Helvetica Neue", sans-serif;
+  --mono: "IBM Plex Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --ink: #E6F3F0; --muted: #8DB5AE; --paper: #0B1A1C; --card: #11282B; --line: #1E3A3D;
+  --clinic: #3CC8B2; --clinic-ink: #0B1A1C; --warn: #F0B13A; --crit: #FF7A6E; --ok: #5FD39B;
+  --term-bg: #07120F; --term-fg: #D8ECE8; --term-dim: #7FA39D; --term-sel: #3CC8B2; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --ink: #E6F3F0; --muted: #8DB5AE; --paper: #0B1A1C; --card: #11282B; --line: #1E3A3D;
+  --clinic: #3CC8B2; --clinic-ink: #0B1A1C; --warn: #F0B13A; --crit: #FF7A6E; --ok: #5FD39B;
+  --term-bg: #07120F; --term-fg: #D8ECE8; --term-dim: #7FA39D; --term-sel: #3CC8B2; color-scheme: dark }
+body { background: var(--paper); color: var(--ink); font: 400 17px/1.6 var(--body); padding-block: 0 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1040px; margin-inline: auto; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; letter-spacing: -0.02em; line-height: 1.08; text-wrap: balance; margin: 0; }
+p { margin: 0; max-width: 62ch; }
+a { color: var(--clinic); }
+code, .mono { font-family: var(--mono); }
+:focus-visible { outline: 2px solid var(--clinic); outline-offset: 3px; border-radius: 4px; }
+
+header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 22px; }
+.brand { display: flex; align-items: center; gap: 12px; font: 700 22px/1 var(--display); letter-spacing: -0.02em; }
+.hy { display: block; width: 34px; height: 34px; }
+nav { display: flex; gap: 22px; font: 500 15px var(--body); }
+nav a { color: var(--muted); text-decoration: none; } nav a:hover { color: var(--ink); }
+
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 48px; align-items: center; padding-block: 48px 72px; }
+.eyebrow { font: 500 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+.hero h1 { font-size: clamp(40px, 6vw, 68px); }
+.hero h1 em { font-style: normal; color: var(--clinic); }
+.lede { margin-top: 22px; font-size: 19px; color: var(--muted); }
+.install { margin-top: 30px; display: flex; align-items: stretch; max-width: 460px; border: 1px solid var(--line); background: var(--card); border-radius: 10px; overflow: hidden; }
+.install code { flex: 1; min-width: 0; padding: 13px 16px; font-size: 14.5px; overflow-x: auto; white-space: nowrap; }
+.install code b { color: var(--clinic); font-weight: 500; }
+button { font: 600 14px var(--body); cursor: pointer; border: 0; background: var(--clinic); color: var(--clinic-ink); padding: 0 18px; }
+button:hover { filter: brightness(1.08); }
+.fine { margin-top: 14px; font-size: 14px; color: var(--muted); }
+
+.term { background: var(--term-bg); color: var(--term-fg); border-radius: 14px; padding: 0; box-shadow: 0 18px 48px -18px rgba(8, 30, 28, .5); overflow: hidden; min-width: 0; }
+.term .bar { display: flex; gap: 7px; padding: 12px 16px; border-bottom: 1px solid rgba(216,236,232,.12); }
+.term .bar i { width: 10px; height: 10px; border-radius: 50%; background: rgba(216,236,232,.22); }
+.term pre { margin: 0; padding: 18px 20px 22px; font: 400 13.5px/1.75 var(--mono); overflow-x: auto; white-space: pre; }
+.term .h { color: #fff; font-weight: 500; } .term .dim { color: var(--term-dim); }
+.term .sel { background: var(--term-sel); color: #07120F; display: inline-block; font-weight: 500; }
+.term .w { color: #F0B13A; } .term .c { color: #FF7A6E; } .term .g { color: #5FD39B; }
+
+section { padding-block: 64px 0; }
+section > h2 { font-size: clamp(30px, 4vw, 42px); margin-bottom: 14px; }
+.sub { color: var(--muted); font-size: 18px; }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 34px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 22px 24px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card h3 { font-size: 22px; } .card p { font-size: 16px; color: var(--muted); }
+.card .tag { font: 500 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--clinic); }
+.card ul { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; font: 400 13.5px/1.45 var(--mono); }
+.card li { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding-top: 6px; } .card li span:last-child { color: var(--muted); text-align: right; }
+
+.promise { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 48px; align-items: start; }
+.promise h2 { margin-bottom: 16px; }
+.rules { display: grid; gap: 0; border-top: 1px solid var(--line); }
+.rules div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.rules dt { font: 500 13.5px var(--mono); color: var(--clinic); } .rules dd { margin: 0; font-size: 16px; }
+.class { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.pill { font: 500 13px var(--mono); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; background: var(--card); }
+.pill.s { color: var(--ok); } .pill.a { color: var(--warn); } .pill.n { color: var(--crit); }
+
+.looks { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 30px; }
+.look { border: 1px solid var(--line); border-radius: 10px; padding: 14px; background: var(--card); } .look b { display: block; font: 600 15px var(--display); } .look span { font-size: 14px; color: var(--muted); line-height: 1.45; display: block; margin-top: 4px; }
+
+.steps { display: grid; gap: 14px; margin-top: 28px; max-width: 640px; }
+.step { border: 1px solid var(--line); background: var(--card); border-radius: 10px; display: flex; align-items: stretch; overflow: hidden; }
+.step code { flex: 1; min-width: 0; padding: 13px 16px; font-size: 14px; overflow-x: auto; white-space: nowrap; }
+.step .n { display: grid; place-items: center; width: 56px; font: 500 14px var(--mono); color: var(--muted); border-right: 1px solid var(--line); }
+
+footer { margin-top: 80px; padding-top: 28px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; color: var(--muted); font-size: 14px; }
+.faces { display: flex; gap: 8px; } .faces svg { width: 28px; height: 28px; }
+
+@media (max-width: 860px) {
+  .hero, .promise { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+  .three { grid-template-columns: minmax(0, 1fr); }
+  .looks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rules div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  nav { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) { .blink { animation: blink 5s infinite; transform-origin: center; } @keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="hy" viewBox="0 0 96 96"><rect width="96" height="96" rx="26.9" fill="var(--clinic)"/><g class="blink"><circle cx="28.8" cy="38.4" r="6.2" fill="var(--clinic-ink)"/><circle cx="67.2" cy="38.4" r="6.2" fill="var(--clinic-ink)"/></g><path d="M31.7 59.5q16.3 12.5 32.6 0" fill="none" stroke="var(--clinic-ink)" stroke-width="3" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+<header>
+  <div class="brand"><svg class="hy" aria-hidden="true"><use href="#hy"/></svg><span>host hygiene</span></div>
+  <nav><a href="#watches">What it watches</a><a href="#promise">Safety</a><a href="#looks">Looks</a><a href="#install">Install</a><a href="https://github.com/krysnkem/host-hygiene">GitHub</a></nav>
+</header>
+
+<main>
+<div class="hero">
+  <div>
+    <div class="eyebrow">hh · for your Mac</div>
+    <h1>Reclaim your Mac. <em>Only when you say so.</em></h1>
+    <p class="lede">host hygiene finds what is eating your disk, memory and CPU, explains each item in plain words, and clears only what you tick. It never closes an app for you.</p>
+    <div class="install"><code><b>$</b> brew install krysnkem/tap/host-hygiene</code><button type="button" id="copy1" data-copy="brew install krysnkem/tap/host-hygiene">Copy</button></div>
+    <p class="fine">macOS only. Built for developers' machines, where build folders, SDKs and emulators fill the disk. Free and open source (MIT).</p>
+  </div>
+  <div class="term" role="img" aria-label="The host hygiene Home screen: Storage low, Memory fine, CPU high, alarms on">
+    <div class="bar"><i></i><i></i><i></i></div>
+<pre><span class="h">hh home</span>  <span class="dim">free 11.6 GiB  load 8.2</span>
+
+<span class="sel"> ❯ s Storage   11.6 GiB free, below the 15 GiB floor   </span> <span class="w">LOW</span>
+   m Memory    <span class="g">31% free, above the 15% line</span>            <span class="g">ok</span>
+   c CPU       <span class="c">load 8.2, over the max 8.0</span>              <span class="c">HIGH</span>
+   a Alarms    <span class="dim">on, every 30 min, quiet 22-7</span>
+   g Settings  <span class="dim">look console, 2 apps ignored</span>
+
+<span class="dim"> ↑↓ move · enter open · s m c a g jump · r rescan · q quit</span></pre>
+  </div>
+</div>
+
+<section id="watches">
+  <h2>Three things it keeps an eye on</h2>
+  <p class="sub">Each one works the same way: look, understand, then decide.</p>
+  <div class="three">
+    <div class="card"><span class="tag">Storage</span><h3>Gets space back, safely</h3><p>Every item is explained with the exact command, what it frees and what it costs to get back. Dry run is the default.</p>
+      <ul><li><span>my-app/build</span><span>4.2 GB</span></li><li><span>Xcode DerivedData</span><span>2.6 GB</span></li><li><span>npm cache</span><span>1.1 GB</span></li></ul></div>
+    <div class="card"><span class="tag">Memory</span><h3>Shows who is using it</h3><p>Apps ranked by impact. A browser's thirty helper processes count as one row. You get directions for freeing memory; you do the closing.</p>
+      <ul><li><span>Docker Desktop</span><span>4.1 GB</span></li><li><span>Google Chrome</span><span>2.6 GB</span></li><li><span>Xcode</span><span>2.2 GB</span></li></ul></div>
+    <div class="card"><span class="tag">CPU</span><h3>Finds what keeps it busy</h3><p>The five-minute load against the limit you set, and the apps behind it. System items are listed but never advised to be closed.</p>
+      <ul><li><span>qemu-system</span><span>170%</span></li><li><span>Google Chrome</span><span>24%</span></li><li><span>mds_stores</span><span>macOS</span></li></ul></div>
+  </div>
+</section>
+
+<section id="promise">
+  <div class="promise">
+    <div>
+      <h2>It never closes, kills or signals anything.</h2>
+      <p class="sub">That is a rule the test suite enforces, not a hope. If a kill, a quit or a clipboard call appears in any script, the build fails.</p>
+      <div class="class"><span class="pill s">safe-regenerable</span><span class="pill a">ask-first</span><span class="pill n">never</span></div>
+      <p class="fine">Every item carries one of three classes. Only the first can be ticked by default.</p>
+    </div>
+    <dl class="rules" style="margin:0">
+      <div><dt>dry run</dt><dd>Nothing is removed unless you pass <code>--run</code> or confirm in the interface.</dd></div>
+      <div><dt>re-checked</dt><dd>Each path must be absolute, with no <code>..</code>, no symlink, not your home folder, not a tracked file.</dd></div>
+      <div><dt>never-touch list</dt><dd>Name a folder once and it is refused everywhere, in every look.</dd></div>
+      <div><dt>alarms read only</dt><dd>They measure and notify. They clean nothing and close nothing.</dd></div>
+      <div><dt>no daemon</dt><dd>Alarms run as a launchd job, about 0.17 seconds a check. Nothing stays resident.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section id="alarms">
+  <h2>A tap on the shoulder, not a siren</h2>
+  <p class="sub">Turn alarms on and host hygiene checks disk, memory and CPU against lines you set. It tells you once per crossing, respects quiet hours, and a click lands on the right screen: Storage for disk, Memory or CPU for the others. Snooze any alarm for an hour, a day, or until tomorrow.</p>
+</section>
+
+<section id="looks">
+  <h2>Five looks, one tool</h2>
+  <p class="sub">Same features in every one. Switch live with <code>v</code>.</p>
+  <div class="looks">
+    <div class="look"><b>Guided</b><span>Hy asks one question at a time.</span></div>
+    <div class="look"><b>Cockpit</b><span>Panels for everything at once.</span></div>
+    <div class="look"><b>Dashboard</b><span>Tiles and sparklines.</span></div>
+    <div class="look"><b>Space map</b><span>Bars sized by how far over you are.</span></div>
+    <div class="look"><b>Console</b><span>Keyboard-first, like a pager.</span></div>
+  </div>
+</section>
+
+<section id="install">
+  <h2>Install in a minute</h2>
+  <p class="sub">Needs macOS. The prebuilt interface runs on Apple Silicon; on Intel you get the plain shell menu, or build the interface once with a Dart SDK.</p>
+  <div class="steps">
+    <div class="step"><span class="n">brew</span><code>brew install krysnkem/tap/host-hygiene</code><button type="button" data-copy="brew install krysnkem/tap/host-hygiene">Copy</button></div>
+    <div class="step"><span class="n">then</span><code>hh</code><button type="button" data-copy="hh">Copy</button></div>
+  </div>
+  <p class="fine">Without Homebrew: download the archive from the <a href="https://github.com/krysnkem/host-hygiene/releases/latest">latest release</a>, unpack it and run <code>./install.sh</code>. Remove it with <code>./uninstall.sh</code> or <code>brew uninstall host-hygiene</code>; your settings in <code>~/.config/host-hygiene</code> stay unless you delete them. Turned on alarms? Run <code>hh schedule off</code> first.</p>
+</section>
+</main>
+
+<footer>
+  <span>host hygiene 1.0.0 · macOS · MIT · <a href="https://github.com/krysnkem/host-hygiene">GitHub</a> · <a href="https://github.com/krysnkem/host-hygiene/releases/latest">Releases</a></span>
+  <span class="faces" aria-hidden="true"><svg><use href="#hy"/></svg></span>
+</footer>
+</div>
+
+<script>
+document.querySelectorAll('button[data-copy]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var t = b.getAttribute('data-copy'), old = b.textContent;
+    function done() { b.textContent = 'Copied'; setTimeout(function () { b.textContent = old; }, 1400); }
+    function fallback() { var r = document.createRange(); r.selectNodeContents(b.previousElementSibling); var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Selected'; setTimeout(function () { b.textContent = old; }, 1400); }
+    try { navigator.clipboard.writeText(t).then(done, fallback); } catch (e) { fallback(); }
+  });
+});
+</script>
