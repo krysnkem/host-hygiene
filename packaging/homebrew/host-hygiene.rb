@@ -2,8 +2,8 @@
 class HostHygiene < Formula
   desc "Find what eats disk, memory and CPU on a Mac, and clear it only when you say so"
   homepage "https://github.com/krysnkem/host-hygiene"
-  url "https://github.com/krysnkem/host-hygiene/releases/download/v1.0.0/host-hygiene-1.0.0.tar.gz"
-  sha256 "e3a931aa17c07ddc7c6bc2844b959967c6938d6ddc4782b4effbe742301b8e5a"
+  url "https://github.com/krysnkem/host-hygiene/releases/download/v1.0.1/host-hygiene-1.0.1.tar.gz"
+  sha256 "60dea427c4a979e8198a14135ff8293e54d6cd6d98f2655606f169c0f7b6a914"
   license "MIT"
 
   depends_on :macos
