@@ -13,7 +13,10 @@ die() { echo "make-release: $*" >&2; rm -rf "$T"; exit 2; }
 file -b "$A" | grep -q "Mach-O.*arm64" || die "$A is not an arm64 Mach-O"
 file -b "$X" | grep -q "Mach-O.*x86_64" || die "$X is not an x86_64 Mach-O"
 chk() { local out; out="$($2 "$1" --version 2>&1)" || die "$1 does not run"; case "$out" in "hh_tui $V "*) ;; *) die "$1 reports '$out', expected version $V" ;; esac; }
-chk "$A" ""; if [ "$(uname -m)" = arm64 ]; then chk "$X" "arch -x86_64"; else chk "$X" ""; fi
+chk "$A" ""
+if [ "$(uname -m)" != arm64 ]; then chk "$X" ""
+elif arch -x86_64 /usr/bin/true 2>/dev/null; then chk "$X" "arch -x86_64"
+else echo "make-release: Rosetta is not available here, so the Intel binary was not run (only its architecture was checked)" >&2; fi
 mkdir -p "$OUT" "$T/$N"
 ( cd "$D" && tar --exclude='./dist' --exclude='./.git' --exclude='./.gitignore' --exclude='./apply-log.txt' --exclude='./STATUS.md' --exclude='./docs/tui-designs.html' --exclude='./docs/tui-design-options.pdf' --exclude='./tui/hh_tui' --exclude='.dart_tool' --exclude='*.b' --exclude='.DS_Store' -cf - . ) | ( cd "$T/$N" && tar -xf - )
 cp "$A" "$T/$N/tui/hh_tui-arm64"; cp "$X" "$T/$N/tui/hh_tui-x86_64"; chmod +x "$T/$N/tui/hh_tui-arm64" "$T/$N/tui/hh_tui-x86_64"

@@ -1,9 +1,10 @@
-# Template for the tap formula (Formula/host-hygiene.rb in the homebrew-tap repo).
+# Template for the tap formula (Formula/host-hygiene.rb in the homebrew-tap repo). tools/render-formula.sh fills in the version and the checksum;
+# the release workflow does that and pushes the result to the tap.
 class HostHygiene < Formula
   desc "Find what eats disk, memory and CPU on a Mac, and clear it only when you say so"
   homepage "https://github.com/krysnkem/host-hygiene"
-  url "https://github.com/krysnkem/host-hygiene/releases/download/v1.0.1/host-hygiene-1.0.1.tar.gz"
-  sha256 "60dea427c4a979e8198a14135ff8293e54d6cd6d98f2655606f169c0f7b6a914"
+  url "https://github.com/krysnkem/host-hygiene/releases/download/v@VERSION@/host-hygiene-@VERSION@.tar.gz"
+  sha256 "@SHA256@"
   license "MIT"
 
   depends_on :macos

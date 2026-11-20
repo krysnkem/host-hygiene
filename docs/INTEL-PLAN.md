@@ -1,6 +1,6 @@
 # Plan: the full interface on Intel and Apple Silicon (1.0.1)
 
-Status: phases A to D built and tested (the Intel binary under Rosetta passes every suite); phase E (release 1.0.1) waits for approval; phase F (GitHub Actions) not started. Author: Claude. For: Christian.
+Status: phases A to D built and tested (the Intel binary under Rosetta passes every suite); phase E done (1.0.1 released by hand); phase F built: `.github/workflows/release.yml`, with a deploy key for the tap (secret `TAP_DEPLOY_KEY`), dry run pending. Author: Claude. For: Christian.
 
 ## 1. Why
 

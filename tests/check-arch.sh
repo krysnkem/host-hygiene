@@ -43,4 +43,8 @@ if [ -x "$D/tui/hh_tui" ] && file -b "$D/tui/hh_tui" | grep -q "Mach-O.*arm64"; 
 "; hasnt "and no personal files" "$L" "apply-log"; hasnt "and no git metadata" "$L" ".git/"
   fi
 fi
+echo "== formula rendering (tools/render-formula.sh)"
+RF="$D/tools/render-formula.sh"; SHA="$(printf 'b%.0s' $(seq 64))"
+o="$("$RF" 2.3.4 "$SHA")"; has "version in the url" "$o" "download/v2.3.4/host-hygiene-2.3.4.tar.gz"; has "checksum filled" "$o" "sha256 \"$SHA\""; hasnt "no version placeholder left" "$o" "@VERSION@"; hasnt "no checksum placeholder left" "$o" "@SHA256@"
+"$RF" 2.3.4 abc >/dev/null 2>&1; eq "a bad checksum is refused" "$?" 2; "$RF" 2.3 "$SHA" >/dev/null 2>&1; eq "a bad version is refused" "$?" 2
 echo "passed $pass, failed $fail"; [ "$fail" = 0 ]
