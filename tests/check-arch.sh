@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # check-arch.sh: which interface binary hh picks for this chip, and what `hh focus` does when none can run. Fake trees and a `file` shim only; nothing real is started.
 # Usage: check-arch.sh [SCRATCH_DIR]     bash 3.2. Uses tests/pty-run.py (a pty) for the focus cases.
-D="$(cd "$(dirname "$0")/.." && pwd)"; S="${1:-$(mktemp -d)}"; mkdir -p "$S"; pass=0; fail=0
+D="$(cd "$(dirname "$0")/.." && pwd)"; S="${1:-$(mktemp -d)}"; mkdir -p "$S"; S="$(cd "$S" && pwd -P)"; pass=0; fail=0
 ok() { pass=$((pass+1)); }; bad() { fail=$((fail+1)); echo "FAIL $1 :: $2"; }
 eq() { [ "$2" = "$3" ] && ok || bad "$1" "want '$3' got '$2'"; }
 has() { case "$2" in *"$3"*) ok ;; *) bad "$1" "missing '$3'" ;; esac; }; hasnt() { case "$2" in *"$3"*) bad "$1" "unexpected '$3'" ;; *) ok ;; esac; }
@@ -21,7 +21,7 @@ rm "$T/tui/hh_tui-"*; fake hh_tui arm64; o="$(pick arm64)"; eq "legacy hh_tui fo
 rc=0"; o="$(pick x86_64)"; eq "legacy hh_tui for the other chip: none" "$o" "rc=1"
 printf '#!/bin/sh\necho plain\n' > "$T/tui/hh_tui"; chmod +x "$T/tui/hh_tui"; o="$(pick arm64)"; eq "an executable that is not a Mach-O: none" "$o" "rc=1"
 fake hh_tui arm64; chmod -x "$T/tui/hh_tui"; o="$(pick arm64)"; eq "not executable: none" "$o" "rc=1"
-real="$("$D/scripts/host-hygiene.sh" --tui-bin 2>/dev/null)"; if [ -x "$D/tui/hh_tui" ]; then eq "the real binary runs here" "$real" "$D/scripts/../tui/hh_tui"; fi
+real="$("$D/scripts/host-hygiene.sh" --tui-bin 2>/dev/null)"; if [ -x "$D/tui/hh_tui" ]; then has "the real binary runs here" "$real" "$D/scripts/../tui/hh_tui"; fi
 echo "== hh focus without a usable interface"
 PSF="$S/ps.txt"; printf '  PID  %%CPU    RSS COMM\n  1 1.0 2000000 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome\n' > "$PSF"; rm -f "$T/tui/"*
 run() { env PATH="$S/bin:$PATH" HH_ARCH=arm64 HH_PS_FILE="$PSF" HH_CONFIG="$S/cfg" python3 "$D/tests/pty-run.py" "$HHT" "$@" </dev/null 2>&1; }
