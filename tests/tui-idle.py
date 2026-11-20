@@ -5,6 +5,7 @@ D = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 home = sys.argv[1]; binp = sys.argv[2] if len(sys.argv) > 2 else D + "/tui/hh_tui"
 env = {"HOME": home, "PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "HH_SCRIPT": D + "/scripts/host-hygiene.sh", "HH_NO_PROMPT": "1", "HH_HOME": "0", "HH_MIN_MB": "10",
        "HH_LOOK": os.environ.get("HH_LOOK", ""), "TERM": "xterm-256color", "LANG": "en_US.UTF-8", "HH_DC_PS_FILE": "/dev/null", "HH_APPS_DIR": "/nonexistent"}
+if "HH_ARCH" in os.environ: env["HH_ARCH"] = os.environ["HH_ARCH"]   # lets a test pick which chip's interface binary the launcher accepts
 pid, fd = pty.fork()
 if pid == 0: os.execve(binp, [binp], env)
 fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))

@@ -98,9 +98,9 @@ tool measures per target.
 | `plan --tsv` real home (about 90 GB, 5000 old downloads, 71 projects) | 188 s (warm) | about 178 s | report only | 7-12 (not trustworthy) |
 | TUI idle CPU, Pick screen | 1.7 % | 0.3 % | < 1 % | 7.7 |
 | TUI idle RSS | 54 MB | 49 MB | report only | |
-| TUI binary size | 7,975,296 B (P0) | 8,320,032 B after the look chooser (was 8,221,536 after P2) | <= 9,023,872 B | |
+| TUI binary size (one per chip) | 7,975,296 B (P0) | 8,467,776 B arm64, 8,849,536 B x86_64 (1.0.1) | <= 9,437,184 B each | |
 | Look chooser waiting for the browser (`hh_tui --pick-look --web`) | n/a | CPU 0% (event-driven: one chooser listening socket on 127.0.0.1, plus the loopback log socket the nocterm library opens in every TUI process, and two one-shot timers, no polling, no extra process) | < 1 % | |
-| TUI binary / skill folder | 7,975,296 B / 8.4 MB | same | binary growth <= 1 MB (9,023,872 B), folder <= 9.5 MB | |
+| TUI binary / skill folder | 7,975,296 B / 8.4 MB | 8.5 MB / 9.4 MB (one binary) | binary <= 9,437,184 B; folder <= 18,000 KB so both chips' binaries fit (dist/ and .git excluded) | |
 | TUI binary / skill folder after the four looks (UI Phase 2) | 7,975,296 B / 8.4 MB | 8,221,536 B / 8.8 MB | same caps | |
 | TUI idle CPU, Pick screen, per look (UI Phase 2; cputime delta over 10 s, `tests/tui-idle.py`, 10 ms resolution) | n/a | guided 0.2 %, cockpit 0.3 %, dashboard 0.3 %, spacemap 0.3 %, console 0.2 % | < 1 % each | 5.2-7.3 |
 | TUI idle RSS per look | 49 MB | 49-55 MB (console 49, spacemap 52, guided 54, dashboard 55, cockpit 55) | report only | |

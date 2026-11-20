@@ -6,6 +6,7 @@ home, rows, cols = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
 D = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 env = {"HOME": home, "PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "HH_SCRIPT": D + "/scripts/host-hygiene.sh", "HH_NO_PROMPT": "1", "HH_HOME": "0", "HH_MIN_MB": "1",
        "TERM": "xterm-256color", "LANG": "en_US.UTF-8", "HH_DC_PS_FILE": "/dev/null", "HH_APPS_DIR": "/nonexistent"}
+if "HH_ARCH" in os.environ: env["HH_ARCH"] = os.environ["HH_ARCH"]   # lets a test pick which chip's interface binary the launcher accepts
 pid, fd = pty.fork()
 if pid == 0: os.execve(D + "/tui/hh_tui", [D + "/tui/hh_tui"], env)
 fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))

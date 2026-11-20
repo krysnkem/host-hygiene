@@ -9,9 +9,9 @@ class HostHygiene < Formula
   depends_on :macos
 
   def install
-    # The bundled interface is built for Apple Silicon; on Intel hh falls back to its shell menu.
+    # The archive carries an interface binary for each chip; keep the one for this Mac.
     libexec.install Dir["*"]
-    rm libexec/"tui/hh_tui" unless Hardware::CPU.arm?
+    rm libexec/"tui/hh_tui-#{Hardware::CPU.arm? ? "x86_64" : "arm64"}"
     (bin/"hh").write <<~SH
       #!/bin/sh
       exec "#{libexec}/scripts/host-hygiene.sh" "$@"
@@ -29,5 +29,6 @@ class HostHygiene < Formula
 
   test do
     assert_match version.to_s, shell_output("#{bin}/hh --version")
+    assert_match "hh_tui-", shell_output("#{bin}/hh --tui-bin")
   end
 end

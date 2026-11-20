@@ -131,7 +131,7 @@ settings() {
 }
 
 change_look() {   # the chooser lives in the TUI binary; the classic menu only hands over to it
-  local bin="$HERE_UI/../tui/hh_tui"
+  local bin; bin="$("$HH" --tui-bin 2>/dev/null)"
   if [ -x "$bin" ]; then HH_SCRIPT="$HH" "$bin" --pick-look; local rc=$?; printf '\033[?25h'
     case "$rc" in 0) echo "  Saved. The new look is used the next time you run host-hygiene.sh without HH_CLASSIC=1." ;; 10) echo "  No change." ;; *) echo "  The chooser could not start (exit $rc)." ;; esac
   else echo "  Changing the look needs the guided front end (tui/hh_tui), which is not built here. Build it with tui/build.sh."; fi

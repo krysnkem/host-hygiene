@@ -1,3 +1,4 @@
+import 'dart:ffi' show Abi;
 import 'dart:io';
 import 'package:nocterm/nocterm.dart';
 import 'package:hh_tui/app.dart';
@@ -21,7 +22,11 @@ class _PickAppState extends State<PickApp> {
   Component build(BuildContext context) => current == null ? Text('') : LookPicker(current: current!, first: false, startWeb: component.web, onDone: (saved) => shutdownApp(saved == null ? 10 : 0));
 }
 
+/// Set by build.sh (`-DHH_VERSION=...`); `dev` for a plain `dart run`.
+const version = String.fromEnvironment('HH_VERSION', defaultValue: 'dev');
+
 void main(List<String> args) {
+  if (args.contains('--version')) { stdout.writeln('hh_tui $version ${Abi.current()}'); exit(0); }
   if (args.contains('--pick-look')) {
     if (!stdin.hasTerminal || !stdout.hasTerminal) { stderr.writeln('hh look needs an interactive terminal.'); exit(2); }
     runApp(PickApp(web: args.contains('--web')));

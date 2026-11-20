@@ -5,7 +5,7 @@
 #   host-hygiene.sh profile [--profile developer|non-developer]
 #   host-hygiene.sh scan    [--profile P] [--tsv] [--min-mb N] [--root DIR ...]
 #   host-hygiene.sh plan    [--profile P] [--min-mb N]   scan + exact command, freed, cost, best ratio first
-#   host-hygiene.sh apply --target PATH [--target PATH ...] [--run] [--yes] [--ask-first-ok]
+#   host-hygiene.sh apply --target PATH [--target PATH ...] [--run] [--yes] [--ask-first-ok] [--keep-going]   (--keep-going: a refused or failed item does not stop the rest; the exit code is 1 if any failed)
 #   host-hygiene.sh config [show | init | get KEY | set KEY VALUE]   thresholds + ui= look (guided|plain|cockpit|dashboard|spacemap|console) file; HH_LOOK beats ui=
 #   host-hygiene.sh snooze disk|memory|cpu 1h|4h|24h|tomorrow|off   silence one alarm for a while (state file only)
 #   host-hygiene.sh check | schedule [on|off|status] [--every MIN]   disk alarm: a launchd agent runs 'check'; below the floor it notifies, and a click opens 'focus'
@@ -37,11 +37,14 @@ else hh_mark() { :; }; fi
 [ -f "$HERE/executors.sh" ] && . "$HERE/executors.sh"   # avdmanager / sdkmanager / fvm / rustup removals (R4)
 [ -f "$HERE/devcatalog.sh" ] && . "$HERE/devcatalog.sh"   # developer-cache rows: gating, tool commands, guards (K3)
 [ -f "$HERE/devcatalog2.sh" ] && . "$HERE/devcatalog2.sh"   # data/ml, devops, game rows: per-project and env rows, editor guards (K3b)
+# The interface binary for this machine: tui/hh_tui-ARCH, then tui/hh_tui, and only if it is a Mach-O for this chip (read with `file`; nothing is run, so a wrong-chip or half-copied file cannot hang or print an error). HH_ARCH is a test seam.
+tui_bin() { local a b; a="${HH_ARCH:-$(uname -m)}"; for b in "$HERE/../tui/hh_tui-$a" "$HERE/../tui/hh_tui"; do [ -x "$b" ] && file -b "$b" 2>/dev/null | grep -q "Mach-O.*$a" && { echo "$b"; return 0; }; done; return 1; }
+case "${1:-}" in --tui-bin) tui_bin; exit $? ;; esac
 case "${1:-}" in --version|version) cat "$HERE/../VERSION" 2>/dev/null || echo dev; exit 0 ;; esac
 CMD="${1:-}"; [ $# -gt 0 ] && shift
 case "$CMD" in check|schedule|snooze) exec "$HERE/schedule.sh" "$CMD" "$@" ;; esac   # scheduled disk check + launchd agent: own arguments, own script
 MINFREE="${HH_MIN_FREE_GB:-}"; HARD="${HH_HARD_GB:-}"; MAXLOAD="${HH_MAX_LOAD:-}"; POS=""; QUIET=0; KV=0
-FOCUS=1; WEBF=""; TARGETS=""; RUN=0; YES=0; ASKOK=0; LOG="${HH_LOG:-${HH_CONFIG:+$(dirname "$HH_CONFIG")}}"; LOG="${LOG:-$HOME/.config/host-hygiene}/apply-log.txt"
+FOCUS=1; WEBF=""; TARGETS=""; RUN=0; YES=0; ASKOK=0; KEEP=0; LOG="${HH_LOG:-${HH_CONFIG:+$(dirname "$HH_CONFIG")}}"; LOG="${LOG:-$HOME/.config/host-hygiene}/apply-log.txt"
 FORCE_PROFILE=""; TSV=0; MIN_MB=50; ROOTS=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -53,6 +56,7 @@ $2"; shift 2 ;;
     --run) RUN=1; shift ;;
     --yes) YES=1; shift ;;
     --ask-first-ok) ASKOK=1; shift ;;
+    --keep-going) KEEP=1; shift ;;
     --log) LOG="$2"; shift 2 ;;
     --min-free-gb) MINFREE="$2"; shift 2 ;;
     --hard-gb) HARD="$2"; shift 2 ;;
@@ -77,12 +81,15 @@ case "$CMD" in
   perf) exec "$HERE/apps.sh" ;;
   config) ;;
   look) ;;
-  focus) [ -t 0 ] && [ -t 1 ] && [ -x "$HERE/../tui/hh_tui" ] || { echo "host-hygiene focus needs an interactive terminal and the built front end (tui/build.sh)" >&2; exit 2; }
-         HH_FOCUS="$FOCUS" HH_SCRIPT="$HERE/host-hygiene.sh" exec "$HERE/../tui/hh_tui" ;;
+  focus) [ -t 0 ] && [ -t 1 ] || { echo "host-hygiene focus needs an interactive terminal" >&2; exit 2; }
+         TUIBIN="$(tui_bin)" || {   # no interface for this chip: show the text view instead of an error (a notification click lands here)
+           echo "host-hygiene: the full interface is not available on this machine ($(uname -m)), so here is the text view. Build it with tui/build.sh, or see the README." >&2
+           case "$FOCUS" in perf*) exec "$HERE/apps.sh" ;; *) HH_NO_PROMPT=1 "$0" guard; echo "  Run 'hh plan' to see what could be freed, or 'hh' for the menu."; exit 0 ;; esac; }
+         HH_FOCUS="$FOCUS" HH_SCRIPT="$HERE/host-hygiene.sh" exec "$TUIBIN" ;;
   menu) exec "$HERE/menu.sh" ;;
   hello) exec "$HERE/intro.sh" ;;
   "") if [ -t 0 ] && [ -t 1 ]; then
-       if [ -x "$HERE/../tui/hh_tui" ] && [ "${HH_CLASSIC:-0}" != 1 ]; then HH_SCRIPT="$HERE/host-hygiene.sh" exec "$HERE/../tui/hh_tui"; fi
+       if [ "${HH_CLASSIC:-0}" != 1 ] && TUIBIN="$(tui_bin)"; then HH_SCRIPT="$HERE/host-hygiene.sh" exec "$TUIBIN"; fi
        exec "$HERE/menu.sh"
      fi; sed -n '2,23p' "$0"; exit 0 ;;
   -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
@@ -101,8 +108,7 @@ cfg_get_t() { [ -f "$CFG" ] && sed -nE "s/^[[:space:]]*$1[[:space:]]*=[[:space:]
 ui_ok() { [ -n "$1" ] && case " $UI_LOOKS " in *" $1 "*) return 0 ;; esac; return 1; }
 ui_eff() { if ui_ok "${HH_LOOK:-}"; then echo "$HH_LOOK"; else local v; v="$(cfg_get_s ui)"; if ui_ok "$v"; then echo "$v"; else echo guided; fi; fi; }
 if [ "$CMD" = look ]; then   # choose the look: the chooser (terminal list, or the browser page with --web) lives in the TUI binary
-  TUIBIN="$HERE/../tui/hh_tui"
-  [ -x "$TUIBIN" ] || { echo "host-hygiene: choosing a look needs the guided front end (tui/hh_tui), and it is not built here. Build it with tui/build.sh, or set it by hand: host-hygiene.sh config set ui <$UI_LOOKS>" >&2; exit 2; }
+  TUIBIN="$(tui_bin)" || { echo "host-hygiene: choosing a look needs the guided front end (tui/hh_tui), and it is not built here. Build it with tui/build.sh, or set it by hand: host-hygiene.sh config set ui <$UI_LOOKS>" >&2; exit 2; }
   [ -t 0 ] && [ -t 1 ] || { echo "host-hygiene look needs an interactive terminal (in scripts: config set ui <$UI_LOOKS>)" >&2; exit 2; }
   HH_SCRIPT="$HERE/host-hygiene.sh" "$TUIBIN" --pick-look $WEBF; rc=$?
   case $rc in
@@ -361,25 +367,25 @@ if [ "$CMD" = apply ]; then
   say() { echo "$*"; [ "$RUN" = 1 ] && echo "$*" >> "$LOG"; }
   say "== apply $MODE  $(date '+%F %T')  load $(uptime | sed 's/.*averages*: //')"
   B0="$(free_kb)"; say "   free before: $(hr "$B0")"
-  FREED=0; DONE=0
+  FREED=0; DONE=0; FAILED=0
   while IFS= read -r T; do
     [ -z "$T" ] && continue; N=$((N+1)); T="${T%/}"
-    if ! classify "$T"; then say "[$N/$TOTAL] REFUSED  ${T/#$HOME/~}  ($WHY)"; [ "$RUN" = 1 ] && { say "stopping on refusal"; exit 1; }; continue; fi
+    if ! classify "$T"; then say "[$N/$TOTAL] REFUSED  ${T/#$HOME/~}  ($WHY)"; FAILED=$((FAILED+1)); [ "$RUN" = 1 ] && [ "$KEEP" = 0 ] && { say "stopping on refusal"; exit 1; }; continue; fi
     if [ "$CLS" = ask-first ] && [ "$ASKOK" = 0 ]; then say "[$N/$TOTAL] SKIPPED  ${T/#$HOME/~}  (ask-first: shared or costly; pass --ask-first-ok after reading its cost)"; continue; fi
     SZ="$(kb "$T")"; SHOW=""
     case "$REM" in
       rm-verified*) CMDLINE=(rm -rf -- "$T")
-        if type dc_check_rm >/dev/null 2>&1 && ! dc_check_rm "$T" "$CATID"; then say "[$N/$TOTAL] REFUSED  ${T/#$HOME/~}  ($DWHY)"; [ "$RUN" = 1 ] && { say "stopping on refusal"; exit 1; }; continue; fi ;;
+        if type dc_check_rm >/dev/null 2>&1 && ! dc_check_rm "$T" "$CATID"; then say "[$N/$TOTAL] REFUSED  ${T/#$HOME/~}  ($DWHY)"; FAILED=$((FAILED+1)); [ "$RUN" = 1 ] && [ "$KEEP" = 0 ] && { say "stopping on refusal"; exit 1; }; continue; fi ;;
       "docker system prune") CMDLINE=(docker system prune -f) ;;
       "npm cache clean --force") CMDLINE=(npm cache clean --force) ;;
       "brew cleanup -s") CMDLINE=(brew cleanup -s) ;;
       "flutter pub cache clean") CMDLINE=(flutter pub cache clean --force) ;;
       "xcrun simctl delete unavailable") CMDLINE=(xcrun simctl delete unavailable) ;;
       "avdmanager delete avd"*|"sdkmanager --uninstall"*|"fvm remove"*|"rustup toolchain uninstall"*)   # executors.sh: own-tool removal, guards re-run at execution
-        if ! hh_x_prepare "$T" "$REM"; then say "[$N/$TOTAL] REFUSED  ${T/#$HOME/~}  ($XWHY)"; [ "$RUN" = 1 ] && { say "stopping on refusal"; exit 1; }; continue; fi
+        if ! hh_x_prepare "$T" "$REM"; then say "[$N/$TOTAL] REFUSED  ${T/#$HOME/~}  ($XWHY)"; FAILED=$((FAILED+1)); [ "$RUN" = 1 ] && [ "$KEEP" = 0 ] && { say "stopping on refusal"; exit 1; }; continue; fi
         [ "$RUN" = 1 ] && say "   cost: $XCOST"; CMDLINE=(hh_x_run "$T" "$REM"); SHOW="${XCMD[*]}"; WHY="$WHY; cost: $XCOST" ;;
       *) if type dc_owns >/dev/null 2>&1 && dc_owns "$REM"; then   # devcatalog.sh: tool command, re-verified now and again at run time
-           if ! dc_prepare "$T" "$CATID" "$REM"; then say "[$N/$TOTAL] REFUSED  ${T/#$HOME/~}  ($DWHY)"; [ "$RUN" = 1 ] && { say "stopping on refusal"; exit 1; }; continue; fi
+           if ! dc_prepare "$T" "$CATID" "$REM"; then say "[$N/$TOTAL] REFUSED  ${T/#$HOME/~}  ($DWHY)"; FAILED=$((FAILED+1)); [ "$RUN" = 1 ] && [ "$KEEP" = 0 ] && { say "stopping on refusal"; exit 1; }; continue; fi
            [ "$RUN" = 1 ] && say "   cost: $DCOST"; CMDLINE=(dc_run "$T" "$CATID" "$REM"); SHOW="${DCMD[*]}"; WHY="$WHY; cost: $DCOST"
          else say "[$N/$TOTAL] SKIPPED  ${T/#$HOME/~}  (removal '$REM' is not supported by apply yet; run it by hand)"; continue; fi ;;
     esac
@@ -388,14 +394,17 @@ if [ "$CMD" = apply ]; then
     if [ "$YES" = 0 ]; then printf '[%s/%s] remove %s (%s, %s)? [y/N] ' "$N" "$TOTAL" "${T/#$HOME/~}" "$(hr "$SZ")" "$CLS"; read -r a </dev/tty; [ "$a" = y ] || { say "[$N/$TOTAL] declined  ${T/#$HOME/~}"; continue; }; fi
     say "[$N/$TOTAL] removing  $(hr "$SZ")  ${T/#$HOME/~}  ..."
     ERRF="$(mktemp -t hh-err.XXXXXX)"
-    if "${CMDLINE[@]}" >/dev/null 2>"$ERRF"; then rm -f "$ERRF"; AF="$(kb "$T")"; AF="${AF:-0}"; G=$((SZ-AF)); [ "$G" -lt 0 ] && G=0
+    # An app's background helper can write into its folder while it is removed ("Directory not empty"): wait a moment and try once more.
+    if "${CMDLINE[@]}" >/dev/null 2>"$ERRF" || { grep -q "Directory not empty" "$ERRF" && sleep 2 && "${CMDLINE[@]}" >/dev/null 2>"$ERRF"; }; then rm -f "$ERRF"; AF="$(kb "$T")"; AF="${AF:-0}"; G=$((SZ-AF)); [ "$G" -lt 0 ] && G=0
       say "[$N/$TOTAL] done      ${T/#$HOME/~}  (${SHOW:-${CMDLINE[*]}})  freed $(hr "$G") measured by du"; DONE=$((DONE+1)); FREED=$((FREED+G))
-    else say "[$N/$TOTAL] ERROR     ${SHOW:-${CMDLINE[*]}} failed; stopping ($(head -n 2 "$ERRF" | tr '\n' ' '))"; rm -f "$ERRF"; exit 1; fi
+    else FAILED=$((FAILED+1)); say "[$N/$TOTAL] ERROR     ${SHOW:-${CMDLINE[*]}} failed; $([ "$KEEP" = 1 ] && echo continuing || echo stopping) ($(head -n 2 "$ERRF" | tr '\n' ' '))"; rm -f "$ERRF"; [ "$KEEP" = 1 ] || exit 1; fi
   done <<EOF2
 $TARGETS
 EOF2
   A1="$(free_kb)"
   say "   ran $DONE item(s), freed $(hr "$FREED") (du before/after per target); free after: $(hr "$A1") (delta $(hr $((A1-B0))); can lag: APFS purgeable, other writers)"
+  [ "$FAILED" -gt 0 ] && say "   $FAILED item(s) were refused or failed (see above); the rest were processed"
+  [ "$FAILED" -gt 0 ] && exit 1
   exit 0
 fi
 

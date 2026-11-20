@@ -95,7 +95,7 @@ trash|any|~/.Trash|ask-first|empty Trash in Finder|permanent; check what is in i
 downloads|any|~/Downloads|never|report-only|user documents; listed so you can review, never proposed for deletion
 mail-attachments|any|~/Library/Containers/com.apple.mail/Data/Library/Mail Downloads|ask-first|rm-verified|attachments re-fetchable from the server only if still on it
 # --- non-developer additions: chat/mail caches (ask-first; message databases are never listed or touched) ---
-whatsapp-media|any|~/Library/Group Containers/group.net.whatsapp.WhatsApp.shared/Message/Media|ask-first|rm-verified|photos/videos received; gone for good unless the chat backup or the sender still has them
+whatsapp-media|any|~/Library/Group Containers/group.net.whatsapp.WhatsApp.shared/Message/Media|ask-first|rm-verified|photos/videos received; gone for good unless the chat backup or the sender still has them; quit WhatsApp first, its background helper can keep writing here
 telegram-media|any|~/Library/Group Containers/*keepcoder.Telegram/stable/account-*/postbox/media|ask-first|rm-verified|Telegram re-downloads from the cloud on demand, except secret chats
 messages-attachments|any|~/Library/Messages/Attachments|ask-first|report-only|iMessage photos/files; not regenerable unless iCloud Messages holds them; delete in the Messages app, not here
 # --- never: user data, listed so you can see it, never proposed, apply refuses ---------------------------------

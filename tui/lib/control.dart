@@ -20,6 +20,8 @@ class Controller {
   /// Runs [f], then redraws (the host's setState).
   final void Function(void Function()) redraw;
   final eng = Engine();
+  /// Home is the first screen (false for `hh focus`, which opens on Pick; Home is still reachable).
+  bool homeFirst = false;
   static final minMb = int.tryParse(Platform.environment['HH_MIN_MB'] ?? '') ?? 50;
 
   Look get want => lookFor(s.lookId);
@@ -54,7 +56,7 @@ class Controller {
     if (firstRun) { final go = scanAnswered = Completer<void>(); redraw(() => s.askScan = true); await go.future; }
     final r = await Future.wait([eng.profile(), eng.guard(), eng.plan(minMb), eng.reading()]);
     final p = r[0] as Profile; s.g = r[1] as Map<String, String>; s.items = r[2] as List<Item>; s.profile = p; s.reading = r[3] as Reading; refreshIgnored();
-    s.homeOn = Platform.environment['HH_HOME'] != '0' && fenv != '1'; menuAfterDone = s.homeOn;
+    s.homeOn = Platform.environment['HH_HOME'] != '0'; menuAfterDone = s.homeOn; homeFirst = s.homeOn && fenv != '1';   // `hh focus` (an alarm click) opens on Pick, but Home is still one key away
     final g = s.g, items = s.items;
     final fl = fenv == '1' ? focusTick(items, g) : null;
     s.mood = g['status'] == 'stop' ? 'stop' : (g['status'] == 'low' ? 'tight' : 'calm');
@@ -70,7 +72,7 @@ class Controller {
     final safe = items.where((i) => i.safe && i.supported).toList(), ask = items.where((i) => !i.safe && i.supported).toList();
     out.add(safe.isEmpty && ask.isNotEmpty ? fill(pick(askOnly), {'n': '${ask.length} item${ask.length == 1 ? '' : 's'} (${size(ask.fold(0, (n, i) => n + i.kb))})'}) : safe.isEmpty ? pick(spotless) : fill(pick(found), {'n': '${safe.length} item${safe.length == 1 ? '' : 's'} (${size(safe.fold(0, (n, i) => n + i.kb))})'}));
     if (s.mood == 'tight') out.add(pick(tight)); if (s.mood == 'stop') out.add(pick(stopLines));
-    redraw(() { s.say(fl ?? out); final ready = eng.configExists || focus; s.stage = ready ? Stage.pick : Stage.limits; if (!items.any((i) => i.supported) && ready) s.stage = Stage.done; s.home = ready && s.homeOn; });
+    redraw(() { s.say(fl ?? out); final ready = eng.configExists || focus; s.stage = ready ? Stage.pick : Stage.limits; if (!items.any((i) => i.supported) && ready) s.stage = Stage.done; s.home = ready && homeFirst; });
   }
 
   void _quit() => shutdownApp();
@@ -109,7 +111,7 @@ class Controller {
         if (!s.speechDone) return false;
         if (lk == LogicalKey.arrowLeft || lk == LogicalKey.arrowRight) { redraw(() => s.sel = 1 - s.sel); return true; }
         if (lk == LogicalKey.enter) {
-          () async { if (s.sel == 0) await eng.setLimits(15, 5, 8); redraw(() { s.stage = items.any((i) => i.supported) ? Stage.pick : Stage.done; s.say([pick(asking)]); s.home = s.homeOn; }); }();
+          () async { if (s.sel == 0) await eng.setLimits(15, 5, 8); redraw(() { s.stage = items.any((i) => i.supported) ? Stage.pick : Stage.done; s.say([pick(asking)]); s.home = homeFirst; }); }();
           return true;
         }
       case Stage.pick:
@@ -154,7 +156,7 @@ class Controller {
           else {
             s.finished = int.parse(m.group(1)!); final r = l.replaceFirst(RegExp(r'^\[\d+/\d+\]\s+'), ''); s.results.add(r);
             if (what == 'done') { s.ran++; s.freedKb += parseSize(RegExp(r'freed (\S+) measured').firstMatch(r)?.group(1) ?? ''); }
-            else { s.problems.add(readable(r)); }
+            else { s.problems.add(readable(r)); final h = errorHint(r); if (h.isNotEmpty) s.problems.add('  $h'); }
           }
         });
       } else if (l.startsWith('stopping on')) { /* the REFUSED line above already says why */ }

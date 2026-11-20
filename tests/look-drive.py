@@ -7,6 +7,7 @@ home, rows, cols = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]); steps = json
 D = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 env = {"HOME": home, "PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "HH_SCRIPT": D + "/scripts/host-hygiene.sh", "HH_NO_PROMPT": "1", "HH_HOME": "0", "HH_MIN_MB": "10", "HH_SEED": "7",
        "TERM": "xterm-256color", "LANG": "en_US.UTF-8", "HH_DC_PS_FILE": "/dev/null", "HH_APPS_DIR": "/nonexistent"}
+if "HH_ARCH" in os.environ: env["HH_ARCH"] = os.environ["HH_ARCH"]   # lets a test pick which chip's interface binary the launcher accepts
 env.update(extra); binp = env.pop("HH_BIN", D + "/tui/hh_tui"); args = env.pop("HH_ARGS", "").split()
 pid, fd = pty.fork()
 if pid == 0: os.execve(binp, [binp] + args, env)

@@ -24,7 +24,7 @@ echo "bench profile_s $(run "${E[@]}" "$HH" profile --tsv)"
 echo "bench plan_cold_s $(run "${E[@]}" HH_CACHE_DIR="$CACHE" "$HH" plan --tsv)"
 echo "bench plan_warm_s $(run "${E[@]}" HH_CACHE_DIR="$CACHE" "$HH" plan --tsv)"
 echo "bench binary_bytes $(stat -f %z "$D/tui/hh_tui" 2>/dev/null || echo 0)"
-echo "bench folder_kb $(du -sk "$D" 2>/dev/null | cut -f1)"
+echo "bench folder_kb $(du -sk -I dist -I .git "$D" 2>/dev/null | cut -f1)"   # the source tree: release output (dist/) and git history are not part of it
 if [ "$TUI" = 1 ] && command -v python3 >/dev/null 2>&1 && [ -x "$D/tui/hh_tui" ]; then
   mkdir -p "$HOME_DIR/.config/host-hygiene"; [ -f "$HOME_DIR/.config/host-hygiene/config" ] || printf 'min_free_gb=15\nhard_gb=5\nmax_load=8\n' > "$HOME_DIR/.config/host-hygiene/config"
   python3 -I "$HERE/tui-idle.py" "$HOME_DIR" 2>/dev/null | awk '$1=="idle_cpu_pct"{print "bench tui_idle_cpu_pct " $2} $1=="idle_rss_kb"{print "bench tui_idle_rss_kb " $2}'

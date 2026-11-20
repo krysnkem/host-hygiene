@@ -1,6 +1,7 @@
 // Run: dart run tests/home_model.dart   (exit 1 on any failure)
 import 'dart:io';
 import 'package:hh_tui/advice_text.dart';
+import 'package:hh_tui/engine.dart';
 import 'package:hh_tui/form_model.dart';
 import 'package:hh_tui/home_model.dart';
 import 'package:hh_tui/perf_model.dart';
@@ -68,6 +69,8 @@ void main() {
   eq(sn.snoozedUntil(Resource.memory) != null, true, 'memory snooze parsed'); eq(sn.snoozedUntil(Resource.storage), null, 'no disk snooze');
   final now = DateTime.fromMillisecondsSinceEpoch(1000 * 1000000);
   eq(snoozeText(Resource.cpu, parseReading('snooze\tcpu\t${1000000 + 3600}\n'), now: now).startsWith('Alarm snoozed until '), true, 'snooze text'); eq(snoozeText(Resource.cpu, parseReading('snooze\tcpu\t${1000000 - 5}\n'), now: now), '', 'an ended snooze says nothing'); eq(snoozeText(Resource.memory, e), '', 'no reading, no snooze text');
+  // removal errors in plain words
+  eq(errorHint('rm: /x/a/2: Directory not empty').contains('Quit that app'), true, 'directory not empty hint'); eq(errorHint('rm: /x: Operation not permitted').contains('App Management'), true, 'not permitted hint'); eq(errorHint('something odd'), '', 'unknown error: no hint');
   // no process control in the new files
   for (final f in ['lib/perf_model.dart', 'lib/advice_text.dart', 'lib/home_model.dart', 'lib/resource_rows.dart', 'lib/resource_view.dart', 'lib/form_model.dart', 'lib/form_view.dart']) {
     final src = File(f).readAsStringSync();

@@ -17,7 +17,7 @@ git clone https://github.com/krysnkem/host-hygiene.git && cd host-hygiene
 hh                      # opens Home
 ```
 
-The interface (`tui/hh_tui`) is not stored in git. Either download the release archive from the [Releases page](https://github.com/krysnkem/host-hygiene/releases), which includes it for Apple Silicon, or build it with `tui/build.sh` (needs a Dart SDK). Without it `hh` falls back to a plain shell menu.
+The interface binary is not stored in git. Download the release archive from the [Releases page](https://github.com/krysnkem/host-hygiene/releases): it carries one for Apple Silicon and one for Intel, and `hh` picks the right one. Or build it with `tui/build.sh` (needs a Dart SDK). Without a usable binary `hh` falls back to a plain shell menu, and an alarm click shows the text view.
 
 Remove it with `./uninstall.sh` (`--purge` also deletes `~/.config/host-hygiene`).
 
@@ -54,7 +54,7 @@ MIT. See [LICENSE](LICENSE).
 ## Tests
 
 ```sh
-tests/check-apps.sh && tests/check-schedule.sh && tests/check-budget.sh   # no extra tools
+tests/check-apps.sh && tests/check-schedule.sh && tests/check-budget.sh && tests/check-arch.sh && tests/check-apply.sh   # no extra tools
 HH_PYTHON=<python with pyte> tests/check-home.sh   # also check-look, check-profile, check-chooser (terminal-driven)
 cd tui && dart run tests/home_model.dart && dart analyze
 ```

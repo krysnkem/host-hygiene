@@ -42,6 +42,14 @@ String readable(String r) {
   return m == null ? r : '${m.group(1)} ${m.group(2)}: ${m.group(3)}';
 }
 
+/// One plain sentence for a removal error, or empty when the raw text is all there is.
+String errorHint(String r) {
+  if (r.contains('Directory not empty')) return 'Something kept adding files while it was removed, often the app that owns the folder or its background helper. Quit that app and try this one again.';
+  if (r.contains('Operation not permitted')) return 'macOS blocked it. Allow your terminal under System Settings > Privacy & Security > App Management (or Full Disk Access), then try again.';
+  if (r.contains('Permission denied')) return 'You do not have permission to remove it.';
+  return '';
+}
+
 class Engine {
   Engine() : script = Platform.environment['HH_SCRIPT'] ?? '${File(Platform.resolvedExecutable).parent.parent.path}/scripts/host-hygiene.sh';
   final String script;
@@ -145,7 +153,7 @@ class Engine {
 
   /// Streams apply output lines. Uses --yes because the user already confirmed on the Confirm step.
   Stream<String> apply(List<Item> chosen) async* {
-    final args = ['apply', '--run', '--yes', if (chosen.any((i) => !i.safe)) '--ask-first-ok', for (final i in chosen) ...['--target', i.path]];
+    final args = ['apply', '--run', '--yes', '--keep-going', if (chosen.any((i) => !i.safe)) '--ask-first-ok', for (final i in chosen) ...['--target', i.path]];
     final p = await Process.start(script, args, environment: {'HH_NO_PROMPT': '1'});
     yield* p.stdout.transform(utf8.decoder).transform(const LineSplitter());
   }
