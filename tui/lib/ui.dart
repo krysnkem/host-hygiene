@@ -1,5 +1,6 @@
 import 'package:nocterm/nocterm.dart';
 import 'layout.dart';
+import 'nav.dart';
 
 /// True when Home exists, so the finished screen offers the menu instead of only quitting (set once at start).
 bool menuAfterDone = false;
@@ -65,7 +66,16 @@ List<String> tagged(List<String> tiers, String tag) {
   return [for (var i = 0; i < tiers.length; i++) for (final g in tags) '${tiers[i]} ${Gl.i.dot} $g', ...tiers];
 }
 
-Component keys(List<String> tiers, int w, {String tag = ''}) => Text('  ${tier(tagged(tiers, tag), w - 2)}', style: TextStyle(color: Colors.brightBlack), softWrap: false);
+/// The key hints, led by the back and forward marks: green when that move is open here, dim when it is not.
+/// The marks are spelled out ("back", "forward") only when that costs no hint; otherwise they shrink to the two arrows.
+Component keys(List<String> tiers, int w, {String tag = ''}) {
+  final g = Gl.i, all = tagged(tiers, tag), longBack = '${g.left} back', longFwd = 'forward ${g.right}';
+  int used(String b, String f) => 2 + b.length + 1 + f.length + 2;
+  final shortFit = tier(all, w - used(g.left, g.right)), long = tier(all, w - used(longBack, longFwd)) == shortFit && w - used(longBack, longFwd) > 0;
+  final back = long ? longBack : g.left, fwd = long ? longFwd : g.right;
+  Text mark(String s, bool on) => Text(s, softWrap: false, style: TextStyle(color: on ? Colors.green : Colors.brightBlack, fontWeight: on ? FontWeight.bold : null));
+  return Row(children: [Text('  '), mark(back, nav.back), Text(' '), mark(fwd, nav.forward), Text('  '), Text(tier(all, w - used(back, fwd)), style: TextStyle(color: Colors.brightBlack), softWrap: false)]);
+}
 
 /// A plain one-line text cut with an ellipsis at [w].
 Component line(String s, int w, {Color? color, bool bold = false}) =>

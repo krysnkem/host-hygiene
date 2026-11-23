@@ -210,7 +210,7 @@ eq "first run: browser answer opens the page, save -> 200" "$(post -d "$(B cockp
 i=0; while [ $i -lt 400 ] && ! grep -q '^ALIVE' "$S/fr.out"; do sleep 0.2; i=$((i+1)); done
 eq "first run: browser answer saved cockpit" "$(ui_of "$DEV")" cockpit; has "first run: TUI continued in cockpit after the web save (no restart)" "$(cat "$S/fr.out")" "● host-hygiene"
 curl -s -o /dev/null --max-time 3 "$URL"; eq "first run: server gone after save" "$?" 7
-cfg "ui=guided"; o="$(drive "$DEV" 24 100 '[["wait","Pick what to clear",120],["sleep",1],["snap","keys"],["key","L"],["wait","Choose a look",20],["key","DOWN"],["key","ENTER"],["sleep",8],["wait","● host-hygiene",30],["snap","c"]]' SSH_CONNECTION=1)"
+cfg "ui=guided"; o="$(drive "$DEV" 24 200 '[["wait","Pick what to clear",120],["sleep",1],["snap","keys"],["key","L"],["wait","Choose a look",20],["key","DOWN"],["key","ENTER"],["sleep",8],["wait","● host-hygiene",30],["snap","c"]]' SSH_CONNECTION=1)"
 has "key line hints the L key" "$(printf '%s' "$o" | sed -n '/=== keys/,/=== c/p')" "L choose"; has "L opens the chooser in the TUI" "$o" "WAIT Choose a look ok"; has "TUI switches live to the saved look" "$o" "WAIT ● host-hygiene ok"; eq "L chooser saved cockpit" "$(ui_of "$DEV")" cockpit
 cfg "ui=guided"; o="$(drive "$DEV" 24 80 '[["wait","Pick what to clear",120],["send","L"],["wait","Choose a look",20],["key","ESC"],["sleep",1],["snap","e"]]' SSH_CONNECTION=1)"; eq "L then Esc changes nothing" "$(ui_of "$DEV")" guided; has "L then Esc returns to the journey" "$(printf '%s' "$o" | sed -n '/=== e/,$p')" "Pick what to clear"
 cfg "ui=guided"; : > "$S/l.url"

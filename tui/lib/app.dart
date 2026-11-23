@@ -4,6 +4,7 @@ import 'package:nocterm/nocterm.dart';
 import 'control.dart';
 import 'layout.dart';
 import 'look.dart';
+import 'nav.dart';
 import 'resource_view.dart';
 import 'form_view.dart';
 import 'home_view.dart';
@@ -46,6 +47,7 @@ class _HyAppState extends State<HyApp> {
   @override
   Component build(BuildContext context) {
     final t = Term();
+    nav = navFor(s, early: c.early);
     if (t.tooSmall) return Focusable(focused: true, onKeyEvent: c.key, child: TooSmallView(t: t));
     if (s.screen != null) return ResourceView(script: c.eng.script, start: s.screen!, onClose: () { setState(() => s.screen = null); c.refreshIgnored(); });
     if (s.onboarding) return Onboard(onDone: (n) => setState(() { s.onboarding = false; s.userName = n; c.onboarded?.complete(); }));

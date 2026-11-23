@@ -135,7 +135,7 @@ class Controller {
         if (lk == LogicalKey.keyF) { redraw(() { for (final i in vis) { i.on = !i.safe && i.supported; } }); return true; }
         if (lk == LogicalKey.keyA) { redraw(() { for (final i in vis) { i.on = i.supported; } }); return true; }
         if (lk == LogicalKey.keyN) { redraw(() { for (final i in vis) { i.on = false; } }); return true; }
-        if (lk == LogicalKey.enter && items.any((i) => i.on)) { redraw(() { s.chosen = items.where((i) => i.on).toList(); s.stage = Stage.confirm; s.sel = 0; s.say(['Here is what you chose. ${pick(asking)}']); }); return true; }
+        if ((lk == LogicalKey.enter || lk == LogicalKey.arrowRight) && items.any((i) => i.on)) { redraw(() { s.chosen = items.where((i) => i.on).toList(); s.stage = Stage.confirm; s.sel = 0; s.say(['Here is what you chose. ${pick(asking)}']); }); return true; }
       case Stage.confirm:
         if (lk == LogicalKey.arrowLeft || lk == LogicalKey.arrowRight) { redraw(() => s.sel = 1 - s.sel); return true; }
         if (lk == LogicalKey.escape) { redraw(() { s.stage = Stage.pick; s.say([pick(asking)]); }); return true; }

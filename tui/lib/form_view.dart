@@ -114,7 +114,7 @@ class _FormViewState extends State<FormView> {
       line(alarms ? 'Alarms' : 'Settings', w, color: Colors.white, bold: true),
       for (var i = top; i < rs.length && i < top + win; i++) _row(rs[i], i == sel, valW, hintW, w, g),
       if (note.isNotEmpty) line(note, w, color: bad ? Colors.yellow : Colors.green),
-      keys(editing ? ['enter save ${g.dot} esc cancel ${g.dot} writes the same config as hh config set', 'enter save ${g.dot} esc cancel', 'enter esc'] : ['${g.ud} move ${g.dot} enter edit or flip${alarms ? ' ${g.dot} t test alert' : ''} ${g.dot} esc or left back', '${g.ud} enter ${g.dot} esc', 'enter esc'], w),
+      keys(editing ? ['enter save ${g.dot} esc cancel ${g.dot} writes the same config as hh config set', 'enter save ${g.dot} esc cancel', 'enter esc'] : ['${g.ud} move ${g.dot} enter edit or flip${alarms ? ' ${g.dot} t test alert' : ''} ${g.dot} esc back', '${g.ud} enter ${g.dot} esc', 'enter esc'], w),
     ])));
   }
 

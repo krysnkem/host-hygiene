@@ -102,7 +102,7 @@ class _ResourceViewState extends State<ResourceView> {
         if (sn.isNotEmpty) line(sn, w, color: Colors.yellow),
         if (t.rows >= 11) for (final l in wrapTo(directionsText(c), w, t.rows >= 14 ? 3 : 2)) line(l, w, color: c!.system ? Colors.yellow : Colors.green),
       ],
-      keys(['${g.ud} move ${g.dot} space tick ${g.dot} i ignore ${g.dot} z snooze ${g.dot} y summary ${g.dot} tab ${res == Resource.cpu ? 'memory' : 'CPU'} ${g.dot} r rescan ${g.dot} esc or left back', '${g.ud} space i z y tab r esc', 'space tab esc'], w),
+      keys(['${g.ud} move ${g.dot} space tick ${g.dot} i ignore ${g.dot} z snooze ${g.dot} y summary ${g.dot} tab ${res == Resource.cpu ? 'memory' : 'CPU'} ${g.dot} r rescan ${g.dot} esc back', '${g.ud} space i z y tab r esc', 'space tab esc'], w),
     ]);
   }
 }

@@ -43,6 +43,8 @@ class Gl {
   String get dot => utf ? '·' : '|';
   String get ud => utf ? '↑↓' : 'up/dn';
   String get lr => utf ? '← →' : '<- ->';
+  String get left => utf ? '←' : '<-';
+  String get right => utf ? '→' : '->';
   String get up => utf ? '↑' : '^';
   String get down => utf ? '↓' : 'v';
   String get to => utf ? '→' : '->';

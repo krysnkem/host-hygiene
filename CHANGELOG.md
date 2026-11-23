@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Home opens at once on the last saved check (kept in `last-reading` beside the config), marked "refreshing" while the machine is read again and the storage scan runs behind it. Storage opens by itself when the scan finishes; Esc or left returns to Home from the scan.
-- The left arrow goes back: from Storage, Memory, CPU, Alarms and Settings.
+- The left arrow goes back: from Storage, Memory, CPU, Alarms and Settings. Every key line starts with `← back  forward →`, green when that move is open on the screen and dim when it is not.
 - `hh -v`, `-V` and `version` print the version.
 - CI: every push to main and every pull request is built and tested on both chips; a push that bumps `VERSION` to a version with no tag is tagged, released and sent to the Homebrew tap when the build passes.
 
