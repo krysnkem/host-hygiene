@@ -30,6 +30,9 @@ class AppState {
   Area? form;
   int formSel = 0;
   Reading? reading;
+  /// When [reading] was taken (null: unknown), and whether a fresh one or the storage scan is still running behind Home.
+  DateTime? readingAt;
+  bool refreshing = false, scanning = false;
   String userName = '';
   bool picking = false, pickFirst = false, askLook = false;
   // work progress

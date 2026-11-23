@@ -67,7 +67,7 @@ if "$PY" -c 'import pyte' 2>/dev/null; then
   o="$(drv '[["wait","CPU:",90],["snap","c"]]' HH_ARGS="focus perf cpu")"; has "focus perf cpu opens the CPU screen" "$o" "CPU: load 12.5 on 10 cores"
   o="$(drv '[["wait","Look",90],["sleep",12],["key","m"],["wait","Memory:",20],["snap","m"],["key","ESC"],["sleep",1],["key","c"],["wait","CPU:",20],["snap","c"]]' HH_ARGS="")"; has "m opens Memory from the journey" "$o" "Memory: 31% free"; has "c opens CPU from the journey" "$o" "CPU: load 12.5"
   o="$(drv '[["wait","space",150],["sleep",2],["snap","k"]]' HH_LOOK=cockpit HH_ARGS="")"; has "the cockpit key hint mentions m apps" "$o" "m apps"
-  o="$(drv '[["wait","Memory:",90],["sleep",1],["snap","small"]]' HH_ARGS="focus perf" )"; has "wide enough shows the full hints" "$o" "esc back"
+  o="$(drv '[["wait","Memory:",90],["sleep",1],["snap","small"]]' HH_ARGS="focus perf" )"; has "wide enough shows the full hints" "$o" "esc or left back"
   for sz in "12 60" "10 70"; do r="${sz% *}"; c="${sz#* }"; o="$("$PY" "$D/tests/look-drive.py" "$DEV" $r $c '[["wait","Memory:",90],["sleep",1],["snap","s"],["key","TAB"],["sleep",1],["snap","c"]]' HH_BIN="$HH" HH_NO_PROMPT=0 HH_PS_FILE="$PS" HH_NCPU=10 HH_MEMSIZE=34359738368 HH_MEM_FREE_PCT=31 HH_LOAD5=12.5 HH_ARGS="focus perf" 2>&1 | grep -v ^WAIT)"; has "$r x $c: Memory header fits" "$o" "Memory: 31% free"; has "$r x $c: CPU after Tab" "$o" "CPU: load 12.5"; has "$r x $c: rows shown" "$o" "Google Chrome"; done
 fi
 echo "== ignored apps"

@@ -99,7 +99,18 @@ class Engine {
   }
 
   /// `check --read`: the three readings and the alarm settings, whatever the alarm switches say. Unreadable output leaves fields unknown.
-  Future<Reading> reading() async => parseReading((await _run(['check', '--read'])).join('\n'));
+  /// A good reading is kept beside the config so Home can draw it at once, marked old, while a fresh one is read.
+  Future<Reading> reading() async {
+    final tsv = (await _run(['check', '--read'])).join('\n'), r = parseReading(tsv);
+    if (_known(r)) { try { _lastReading.writeAsStringSync(tsv); } catch (_) {} }
+    return r;
+  }
+  File get _lastReading => File('${File(cfg).parent.path}/last-reading');
+  static bool _known(Reading r) => r.freeGb != null || r.load != null || r.memFreePct != null;
+  /// The saved reading and when it was taken, or null when there is none.
+  (Reading, DateTime)? cachedReading() {
+    try { final f = _lastReading, r = parseReading(f.readAsStringSync()); return _known(r) ? (r, f.lastModifiedSync()) : null; } catch (_) { return null; }
+  }
 
   /// The look id the shell resolved: HH_LOOK, then `ui=` in the config, else guided. The shell holds the allowed list.
   Future<String> ui() async {

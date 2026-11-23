@@ -7,11 +7,11 @@ import 'layout.dart';
 import 'ui.dart';
 
 class HomePanels extends StatelessComponent {
-  const HomePanels({super.key, required this.rows, required this.sel, required this.t, required this.note});
+  const HomePanels({super.key, required this.rows, required this.sel, required this.t, required this.note, this.stamp = ''});
   final List<HomeRow> rows;
   final int sel;
   final Term t;
-  final String note;
+  final String note, stamp;
 
   Pane _pane(int i, int w, int h) {
     final r = rows[i], parts = r.brief.isNotEmpty ? r.brief : r.status.split(', ');
@@ -29,6 +29,7 @@ class HomePanels extends StatelessComponent {
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [_pane(0, third, big), SizedBox(width: 1), _pane(1, third, big), SizedBox(width: 1), _pane(2, last, big)]),
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [_pane(3, (w - 1) ~/ 2, small), SizedBox(width: 1), _pane(4, w - 1 - (w - 1) ~/ 2, small)]),
       if (note.isNotEmpty) line(note, w, color: Colors.cyan),
+      if (stamp.isNotEmpty) line(stamp, w, color: Colors.brightBlack),
       keys(['${Gl.i.lr} ${Gl.i.ud} move ${Gl.i.dot} enter open ${Gl.i.dot} s m c a g jump ${Gl.i.dot} r rescan ${Gl.i.dot} v look ${Gl.i.dot} q quit', 'enter s m c a g r v q'], w),
     ]));
   }

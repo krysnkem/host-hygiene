@@ -40,7 +40,7 @@ else hh_mark() { :; }; fi
 # The interface binary for this machine: tui/hh_tui-ARCH, then tui/hh_tui, and only if it is a Mach-O for this chip (read with `file`; nothing is run, so a wrong-chip or half-copied file cannot hang or print an error). HH_ARCH is a test seam.
 tui_bin() { local a b; a="${HH_ARCH:-$(uname -m)}"; for b in "$HERE/../tui/hh_tui-$a" "$HERE/../tui/hh_tui"; do [ -x "$b" ] && file -b "$b" 2>/dev/null | grep -q "Mach-O.*$a" && { echo "$b"; return 0; }; done; return 1; }
 case "${1:-}" in --tui-bin) tui_bin; exit $? ;; esac
-case "${1:-}" in --version|version) cat "$HERE/../VERSION" 2>/dev/null || echo dev; exit 0 ;; esac
+case "${1:-}" in --version|-v|-V|version) cat "$HERE/../VERSION" 2>/dev/null || echo dev; exit 0 ;; esac
 CMD="${1:-}"; [ $# -gt 0 ] && shift
 case "$CMD" in check|schedule|snooze) exec "$HERE/schedule.sh" "$CMD" "$@" ;; esac   # scheduled disk check + launchd agent: own arguments, own script
 MINFREE="${HH_MIN_FREE_GB:-}"; HARD="${HH_HARD_GB:-}"; MAXLOAD="${HH_MAX_LOAD:-}"; POS=""; QUIET=0; KV=0

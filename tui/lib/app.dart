@@ -30,7 +30,7 @@ class _HyAppState extends State<HyApp> {
     super.initState();
     timer = Timer.periodic(const Duration(milliseconds: 50), (_) {
       // Redraw only when something on screen moves: speech typing, the look/work spinner, or a blink edge. Idle screens (pick, confirm, limits after speech) stay still.
-      final busy = !s.speechDone || s.stage == Stage.look || s.stage == Stage.work;
+      final busy = !s.home && (!s.speechDone || s.stage == Stage.look || s.stage == Stage.work);   // Home waits for data, it does not animate
       c.advance();
       if (busy || s.tick % 70 == 0 || s.tick % 70 == 3) setState(() {});
     });

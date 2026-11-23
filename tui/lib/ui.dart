@@ -3,7 +3,7 @@ import 'layout.dart';
 
 /// True when Home exists, so the finished screen offers the menu instead of only quitting (set once at start).
 bool menuAfterDone = false;
-List<String> doneKeys() => menuAfterDone ? ['enter or esc for the menu ${Gl.i.dot} q quit', 'enter menu / q quit'] : ['enter or q to quit', 'enter / q quit'];
+List<String> doneKeys() => menuAfterDone ? ['enter, esc or left for the menu ${Gl.i.dot} q quit', 'enter menu / q quit'] : ['enter or q to quit', 'enter / q quit'];
 
 const stepNames = ['Look', 'Pick', 'Confirm', 'Done'];
 

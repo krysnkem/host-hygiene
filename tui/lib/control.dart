@@ -5,7 +5,6 @@ import 'package:nocterm/nocterm.dart';
 import 'engine.dart';
 import 'focus.dart';
 import 'home_keys.dart';
-import 'home_model.dart';
 import 'layout.dart';
 import 'look.dart';
 import 'perf_model.dart';
@@ -22,6 +21,8 @@ class Controller {
   final eng = Engine();
   /// Home is the first screen (false for `hh focus`, which opens on Pick; Home is still reachable).
   bool homeFirst = false;
+  /// Home was drawn before the scan finished, so Esc can leave the scan view for it.
+  bool early = false;
   static final minMb = int.tryParse(Platform.environment['HH_MIN_MB'] ?? '') ?? 50;
 
   Look get want => lookFor(s.lookId);
@@ -54,9 +55,13 @@ class Controller {
     if (s.askLook) { final hi = Completer<void>(); onboarded = hi; redraw(() => s.onboarding = true); await hi.future; }
     if (s.askLook) { final done = lookAnswered = Completer<void>(); redraw(() { s.picking = true; s.pickFirst = true; }); await done.future; }
     if (firstRun) { final go = scanAnswered = Completer<void>(); redraw(() => s.askScan = true); await go.future; }
-    final r = await Future.wait([eng.profile(), eng.guard(), eng.plan(minMb), eng.reading()]);
-    final p = r[0] as Profile; s.g = r[1] as Map<String, String>; s.items = r[2] as List<Item>; s.profile = p; s.reading = r[3] as Reading; refreshIgnored();
     s.homeOn = Platform.environment['HH_HOME'] != '0'; menuAfterDone = s.homeOn; homeFirst = s.homeOn && fenv != '1';   // `hh focus` (an alarm click) opens on Pick, but Home is still one key away
+    // After the first run Home opens at once on the last saved reading, marked old; the fresh reading and the storage scan carry on behind it.
+    early = homeFirst && !firstRun && eng.configExists;
+    if (early) { final c = eng.cachedReading(); redraw(() { s.home = true; s.refreshing = true; s.scanning = true; if (c != null) { s.reading = c.$1; s.readingAt = c.$2; } }); }
+    final rd = eng.reading().then((x) { redraw(() { s.reading = x; s.readingAt = DateTime.now(); s.refreshing = false; }); return x; });
+    final r = await Future.wait([eng.profile(), eng.guard(), eng.plan(minMb), rd]);
+    final p = r[0] as Profile; s.g = r[1] as Map<String, String>; s.items = r[2] as List<Item>; s.profile = p; refreshIgnored();
     final g = s.g, items = s.items;
     final fl = fenv == '1' ? focusTick(items, g) : null;
     s.mood = g['status'] == 'stop' ? 'stop' : (g['status'] == 'low' ? 'tight' : 'calm');
@@ -72,7 +77,7 @@ class Controller {
     final safe = items.where((i) => i.safe && i.supported).toList(), ask = items.where((i) => !i.safe && i.supported).toList();
     out.add(safe.isEmpty && ask.isNotEmpty ? fill(pick(askOnly), {'n': '${ask.length} item${ask.length == 1 ? '' : 's'} (${size(ask.fold(0, (n, i) => n + i.kb))})'}) : safe.isEmpty ? pick(spotless) : fill(pick(found), {'n': '${safe.length} item${safe.length == 1 ? '' : 's'} (${size(safe.fold(0, (n, i) => n + i.kb))})'}));
     if (s.mood == 'tight') out.add(pick(tight)); if (s.mood == 'stop') out.add(pick(stopLines));
-    redraw(() { s.say(fl ?? out); final ready = eng.configExists || focus; s.stage = ready ? Stage.pick : Stage.limits; if (!items.any((i) => i.supported) && ready) s.stage = Stage.done; s.home = ready && homeFirst; });
+    redraw(() { s.say(fl ?? out); final ready = eng.configExists || focus; s.stage = ready ? Stage.pick : Stage.limits; if (!items.any((i) => i.supported) && ready) s.stage = Stage.done; if (!early) s.home = ready && homeFirst; s.scanning = false; });
   }
 
   void _quit() => shutdownApp();
@@ -81,7 +86,7 @@ class Controller {
   bool homeKey(KeyboardEvent k) => handleHomeKey(s, k, redraw, rescan: _rescan, look: (save) => _switch(save: save), quit: _quit, enterStorage: _enterStorage);
   /// Coming back to Storage after a clear shows the refreshed pick list, not the old result.
   void _enterStorage() { if (s.stage == Stage.done && s.items.any((i) => i.supported)) { s.stage = Stage.pick; s.cur = 0; s.top = 0; s.say([pick(asking)]); } }
-  Future<void> _rescan() async { final r = await eng.reading(); redraw(() { s.reading = r; s.homeNote = ''; }); refreshIgnored(); }
+  Future<void> _rescan() async { redraw(() => s.refreshing = true); final r = await eng.reading(); redraw(() { s.reading = r; s.readingAt = DateTime.now(); s.refreshing = false; s.homeNote = ''; }); refreshIgnored(); }
   /// Keeps the Settings line on Home honest after an ignore or a restore.
   Future<void> refreshIgnored() async { final n = (await eng.ignored()).length; redraw(() => s.ignoredCount = n); }
 
@@ -98,7 +103,7 @@ class Controller {
     final lk = k.logicalKey, items = s.items;
     if (s.note.isNotEmpty) redraw(() => s.note = '');
     if (s.stage == Stage.work) return true;
-    if (lk == LogicalKey.escape && s.homeOn && (s.stage == Stage.pick || s.stage == Stage.done)) { redraw(() { s.home = true; s.homeNote = ''; }); return true; }
+    if ((lk == LogicalKey.escape || lk == LogicalKey.arrowLeft) && s.homeOn && (s.stage == Stage.pick || s.stage == Stage.done || (s.stage == Stage.look && early))) { redraw(() { s.home = true; s.homeNote = ''; }); return true; }
     if (lk == LogicalKey.keyM && !k.isControlPressed && s.stage != Stage.limits) { redraw(() => s.screen = Resource.memory); return true; }
     if (lk == LogicalKey.keyC && !k.isControlPressed && s.stage != Stage.limits) { redraw(() => s.screen = Resource.cpu); return true; }
     if (lk == LogicalKey.keyL && !k.isControlPressed && s.stage != Stage.limits) { redraw(() { s.picking = true; s.pickFirst = false; }); return true; }
@@ -167,7 +172,7 @@ class Controller {
     s.g = await eng.guard(); s.freeAfter = s.g['free_gb'] ?? '?';
     final again = await eng.plan(minMb), fresh = await eng.reading();
     redraw(() {
-      s.items = again; s.reading = fresh; s.stage = Stage.done; s.cur = 0; s.top = 0;
+      s.items = again; s.reading = fresh; s.readingAt = DateTime.now(); s.stage = Stage.done; s.cur = 0; s.top = 0;
       s.say([(s.ran > 0 ? 'Done. I cleared ${s.freed} across ${s.ran} item${s.ran == 1 ? '' : 's'}.' : 'Nothing was removed.') + (s.problems.isNotEmpty ? ' Some items were left alone, see below.' : ''), if (s.problems.isEmpty && s.ran > 0) pick(doneLines)]);
     });
   }

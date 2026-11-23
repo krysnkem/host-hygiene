@@ -40,6 +40,24 @@ Reading parseReading(String tsv) {
       snoozes: snz, alarmsOn: on, everyMin: every, notify: notify, quiet: quiet, checkMem: cm, checkCpu: cc);
 }
 
+/// "just now", "3 min ago", "2 h ago", "4 d ago".
+String agoText(DateTime then, DateTime now) {
+  final m = now.difference(then).inMinutes;
+  if (m < 1) return 'just now';
+  if (m < 60) return '$m min ago';
+  if (m < 1440) return '${m ~/ 60} h ago';
+  return '${m ~/ 1440} d ago';
+}
+
+/// The one line Home shows about how fresh it is: the last check stays on screen, marked as old, while the machine is read again.
+String homeStamp({required DateTime? at, required bool refreshing, required bool scanning, required DateTime now}) {
+  final parts = <String>[
+    if (refreshing) (at == null ? 'reading the machine...' : 'last check ${agoText(at, now)}, refreshing...') else if (at != null) 'updated ${agoText(at, now)}',
+    if (scanning) 'scanning storage...',
+  ];
+  return parts.join('  ');
+}
+
 enum Area { storage, memory, cpu, alarms, settings }
 
 class HomeRow {

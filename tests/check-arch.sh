@@ -31,6 +31,8 @@ o="$(run focus)"; has "disk click: the guard line" "$o" "free"; has "and the nex
 fake hh_tui-x86_64 x86_64; o="$(run focus perf cpu)"; has "the wrong chip's binary is not launched" "$o" "not available on this machine"; hasnt "and never started" "$o" "FAKE-TUI"
 fake hh_tui-arm64 arm64; o="$(run focus perf cpu)"; has "the right binary is launched" "$o" "FAKE-TUI focus=perf-cpu"; o="$(run focus perf mem)"; has "with the memory screen asked for" "$o" "FAKE-TUI focus=perf-mem"
 o="$(env PATH="$S/bin:$PATH" HH_ARCH=arm64 "$HHT" focus </dev/null 2>&1; echo "rc=$?")"; has "a script (no terminal) still gets the error and exit 2" "$o" "rc=2"
+echo "== version flags"
+for f in --version -v -V version; do o="$("$D/scripts/host-hygiene.sh" $f 2>&1)"; eq "hh $f prints the version" "$o" "$(cat "$D/VERSION")"; done
 echo "== release packaging (tools/make-release.sh)"
 MR="$D/tools/make-release.sh"
 if [ -x "$D/tui/hh_tui" ] && file -b "$D/tui/hh_tui" | grep -q "Mach-O.*arm64"; then

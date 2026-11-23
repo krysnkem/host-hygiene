@@ -95,7 +95,7 @@ class _FormViewState extends State<FormView> {
       if (!k.isControlPressed && text.length < 40 && typable(rs[s.formSel.clamp(0, n - 1)].kind, c)) { setState(() { text += c; note = ''; }); return true; }
       return true;
     }
-    if (lk == LogicalKey.escape || lk == LogicalKey.keyQ || (k.isControlPressed && lk == LogicalKey.keyC)) { component.onClose(rd); return true; }
+    if (lk == LogicalKey.escape || lk == LogicalKey.arrowLeft || lk == LogicalKey.keyQ || (k.isControlPressed && lk == LogicalKey.keyC)) { component.onClose(rd); return true; }
     if (k.isControlPressed || n == 0) return false;
     if (lk == LogicalKey.arrowDown || lk == LogicalKey.keyJ) { setState(() { s.formSel = (s.formSel + 1) % n; note = ''; }); return true; }
     if (lk == LogicalKey.arrowUp || lk == LogicalKey.keyK) { setState(() { s.formSel = (s.formSel + n - 1) % n; note = ''; }); return true; }
@@ -114,7 +114,7 @@ class _FormViewState extends State<FormView> {
       line(alarms ? 'Alarms' : 'Settings', w, color: Colors.white, bold: true),
       for (var i = top; i < rs.length && i < top + win; i++) _row(rs[i], i == sel, valW, hintW, w, g),
       if (note.isNotEmpty) line(note, w, color: bad ? Colors.yellow : Colors.green),
-      keys(editing ? ['enter save ${g.dot} esc cancel ${g.dot} writes the same config as hh config set', 'enter save ${g.dot} esc cancel', 'enter esc'] : ['${g.ud} move ${g.dot} enter edit or flip${alarms ? ' ${g.dot} t test alert' : ''} ${g.dot} esc back', '${g.ud} enter ${g.dot} esc', 'enter esc'], w),
+      keys(editing ? ['enter save ${g.dot} esc cancel ${g.dot} writes the same config as hh config set', 'enter save ${g.dot} esc cancel', 'enter esc'] : ['${g.ud} move ${g.dot} enter edit or flip${alarms ? ' ${g.dot} t test alert' : ''} ${g.dot} esc or left back', '${g.ud} enter ${g.dot} esc', 'enter esc'], w),
     ])));
   }
 

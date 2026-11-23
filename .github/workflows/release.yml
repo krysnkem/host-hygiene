@@ -1,21 +1,53 @@
-# Builds the interface for both chips on native runners, tests it, and on a version tag publishes the release and updates the Homebrew tap.
-#   - any push of a tag v*  : build, test, release, tap update
-#   - "Run workflow" (workflow_dispatch) on a branch: build and test only (a dry run; nothing is published)
+# Builds the interface for both chips on native runners and tests it. A push to main that bumps VERSION to a version
+# with no tag yet, and whose build and tests pass, is released: CI creates the tag, publishes the release and updates the Homebrew tap.
+#   - pull request, or a push to main that does not bump VERSION : build and test only
+#   - push to main with a new VERSION                            : build, test, tag, release, tap update
+#   - "Run workflow" (workflow_dispatch)                         : build and test only (a dry run; nothing is published)
+# The terminal tests (they drive the real interface in a pty) report but do not gate: they are timing-sensitive on shared runners.
 # Third-party actions are pinned to a full commit SHA (the comment names the version).
 name: release
 
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**', 'brand/**']
+  pull_request:
+    paths-ignore: ['**.md', 'docs/**', 'brand/**']
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   DART_VERSION: '3.9.2'
 
 jobs:
+  # Decides whether this run may release: only a push to main whose VERSION has no tag yet.
+  plan:
+    name: should this release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      release: ${{ steps.p.outputs.release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: p
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="$(cat VERSION)"; R=false
+          if [ "$EVENT" = push ] && [ "$REF" = refs/heads/main ]; then
+            if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$V" >/dev/null 2>&1; then echo "v$V already exists: test only"
+            elif ! grep -q "^## $V" CHANGELOG.md; then echo "CHANGELOG.md has no entry for $V"; exit 1
+            else R=true; echo "v$V is new: will release if the tests pass"; fi
+          else echo "not a push to main: test only"; fi
+          echo "release=$R" >> "$GITHUB_OUTPUT"
   build:
     name: build ${{ matrix.arch }}
     strategy:
@@ -93,8 +125,8 @@ jobs:
 
   release:
     name: publish the release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    if: needs.plan.outputs.release == 'true'
+    needs: [plan, build]
     runs-on: macos-latest
     timeout-minutes: 15
     permissions:
@@ -106,11 +138,6 @@ jobs:
           pattern: hh_tui-*
           path: bin
           merge-multiple: true
-      - name: The tag matches VERSION
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          [ "$TAG" = "v$(cat VERSION)" ] || { echo "tag $TAG does not match VERSION $(cat VERSION)"; exit 1; }
       - name: Build the archive
         run: |
           chmod +x bin/*
@@ -118,12 +145,11 @@ jobs:
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
         run: |
-          V="$(cat VERSION)"
+          V="$(cat VERSION)"; TAG="v$V"
           awk -v v="$V" '$0 ~ "^## " v {f=1; next} /^## / {f=0} f' CHANGELOG.md > notes.md
           [ -s notes.md ] || echo "host hygiene $V" > notes.md
-          gh release create "$TAG" "dist/host-hygiene-$V.tar.gz" "dist/host-hygiene-$V.tar.gz.sha256" --title "host hygiene $V" --notes-file notes.md
+          gh release create "$TAG" --target "$GITHUB_SHA" "dist/host-hygiene-$V.tar.gz" "dist/host-hygiene-$V.tar.gz.sha256" --title "host hygiene $V" --notes-file notes.md
       - name: Keep the checksum for the tap job
         run: cut -d' ' -f1 "dist/host-hygiene-$(cat VERSION).tar.gz.sha256" > sha256.txt
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

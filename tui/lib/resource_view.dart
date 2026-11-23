@@ -69,7 +69,7 @@ class _ResourceViewState extends State<ResourceView> {
 
   bool _key(KeyboardEvent k) {
     final lk = k.logicalKey, rs = ranked, n = rs.length;
-    if (lk == LogicalKey.escape || lk == LogicalKey.keyQ || (k.isControlPressed && lk == LogicalKey.keyC)) { component.onClose(); return true; }
+    if (lk == LogicalKey.escape || lk == LogicalKey.arrowLeft || lk == LogicalKey.keyQ || (k.isControlPressed && lk == LogicalKey.keyC)) { component.onClose(); return true; }
     if (lk == LogicalKey.keyR) { note = ''; _load(); return true; }
     if (lk == LogicalKey.tab || (lk == LogicalKey.keyM && res == Resource.cpu) || (lk == LogicalKey.keyC && res == Resource.memory)) { setState(() { res = res == Resource.cpu ? Resource.memory : Resource.cpu; cur = 0; summary = false; note = ''; }); return true; }
     if (lk == LogicalKey.keyZ) { _snooze(); return true; }
@@ -102,7 +102,7 @@ class _ResourceViewState extends State<ResourceView> {
         if (sn.isNotEmpty) line(sn, w, color: Colors.yellow),
         if (t.rows >= 11) for (final l in wrapTo(directionsText(c), w, t.rows >= 14 ? 3 : 2)) line(l, w, color: c!.system ? Colors.yellow : Colors.green),
       ],
-      keys(['${g.ud} move ${g.dot} space tick ${g.dot} i ignore ${g.dot} z snooze ${g.dot} y summary ${g.dot} tab ${res == Resource.cpu ? 'memory' : 'CPU'} ${g.dot} r rescan ${g.dot} esc back', '${g.ud} space i z y tab r esc', 'space tab esc'], w),
+      keys(['${g.ud} move ${g.dot} space tick ${g.dot} i ignore ${g.dot} z snooze ${g.dot} y summary ${g.dot} tab ${res == Resource.cpu ? 'memory' : 'CPU'} ${g.dot} r rescan ${g.dot} esc or left back', '${g.ud} space i z y tab r esc', 'space tab esc'], w),
     ]);
   }
 }

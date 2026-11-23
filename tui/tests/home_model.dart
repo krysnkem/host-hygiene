@@ -76,5 +76,14 @@ void main() {
     final src = File(f).readAsStringSync();
     eq(RegExp(r'Process\.kill|killPid|Signal\.sig(term|kill|int)|pkill|killall|Process\.start|pbcopy|Activity Monitor\b.*open', caseSensitive: false).hasMatch(src.split('\n').where((l) => !l.trimLeft().startsWith('//')).join('\n')), false, 'no process control in $f');
   }
+  final t0 = DateTime(2026, 11, 23, 12);
+  eq(agoText(t0, t0.add(const Duration(seconds: 20))), 'just now', 'ago: seconds');
+  eq(agoText(t0, t0.add(const Duration(minutes: 3))), '3 min ago', 'ago: minutes');
+  eq(agoText(t0, t0.add(const Duration(hours: 5))), '5 h ago', 'ago: hours');
+  eq(agoText(t0, t0.add(const Duration(days: 2))), '2 d ago', 'ago: days');
+  eq(homeStamp(at: null, refreshing: true, scanning: true, now: t0), 'reading the machine...  scanning storage...', 'stamp: first ever read');
+  eq(homeStamp(at: t0, refreshing: true, scanning: true, now: t0.add(const Duration(minutes: 3))), 'last check 3 min ago, refreshing...  scanning storage...', 'stamp: old reading shown while refreshing');
+  eq(homeStamp(at: t0, refreshing: false, scanning: false, now: t0.add(const Duration(minutes: 1))), 'updated 1 min ago', 'stamp: settled');
+  eq(homeStamp(at: null, refreshing: false, scanning: false, now: t0), '', 'stamp: nothing to say');
   print('home_model: $n checks, ${n - bad} passed, $bad failed'); exit(bad == 0 ? 0 : 1);
 }
