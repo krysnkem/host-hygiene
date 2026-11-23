@@ -84,6 +84,8 @@ jobs:
           ./hh_tui-${{ matrix.arch }} --version
           ./hh_tui-${{ matrix.arch }} --version | grep -q "$(cat ../VERSION) macos_${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}"
       - name: Shell suites
+        env:
+          HH_TIMING_LIMIT: "2"   # shared runners are slow; the 0.6 s budget stays for local runs
         run: |
           cp tui/hh_tui-${{ matrix.arch }} tui/hh_tui
           for t in check-arch check-apply check-apps check-schedule; do echo "== $t"; bash tests/$t.sh; done

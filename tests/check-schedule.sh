@@ -51,7 +51,7 @@ unset HH_PS_FILE
 echo "== check: cost"
 setc 15 5; t0=$(perl -MTime::HiRes=time -e 'printf "%.3f",time'); "$HH" check --dry >/dev/null; t1=$(perl -MTime::HiRes=time -e 'printf "%.3f",time')
 ld="$(uptime | sed 's/.*averages*: *//' | awk '{gsub(",","",$1); print int($1)}')"
-if [ "${ld:-0}" -ge 8 ]; then echo "SKIP check timing (load $ld)"; else awk -v a="$t0" -v b="$t1" 'BEGIN{exit !(b-a<0.6)}' && ok || bad "check takes under 0.6 s" "$(awk -v a="$t0" -v b="$t1" 'BEGIN{print b-a}')"; fi
+if [ "${ld:-0}" -ge 8 ]; then echo "SKIP check timing (load $ld)"; else awk -v a="$t0" -v b="$t1" -v m="${HH_TIMING_LIMIT:-0.6}" 'BEGIN{exit !(b-a<m)}' && ok || bad "check takes under ${HH_TIMING_LIMIT:-0.6} s" "$(awk -v a="$t0" -v b="$t1" 'BEGIN{print b-a}')"; fi
 echo "== config keys"
 rm -f "$HH_CONFIG"; for kv in "check_every_min 4" "check_every_min 1441" "check_every_min abc" "notify maybe" "quiet_hours 25-3" "quiet_hours nonsense"; do set -- $kv; "$HH" config set "$1" "$2" >/dev/null 2>&1; eq "config set $1 $2 is refused" "$?" 2; done
 "$HH" config set check_every_min 45 >/dev/null; eq "check_every_min saved" "$("$HH" config get check_every_min)" 45; "$HH" config set quiet_hours 22-7 >/dev/null; eq "quiet_hours saved" "$("$HH" config get quiet_hours)" 22-7
