@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.0.2
 
+- `hh -h`, `--help` and `help` show a help screen grouped by task that fits 80 columns, in place of the script's source comments.
+- After a Homebrew install, the notes set the command to run (`hh`) apart from the rest.
 - Home opens at once on the last saved check (kept in `last-reading` beside the config), marked "refreshing" while the machine is read again and the storage scan runs behind it. Storage opens by itself when the scan finishes; Esc or left returns to Home from the scan.
 - The left arrow goes back: from Storage, Memory, CPU, Alarms and Settings. Every key line starts with `← back  forward →`, green when that move is open on the screen and dim when it is not.
 - `hh -v`, `-V` and `version` print the version.
