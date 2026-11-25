@@ -41,6 +41,64 @@ else hh_mark() { :; }; fi
 tui_bin() { local a b; a="${HH_ARCH:-$(uname -m)}"; for b in "$HERE/../tui/hh_tui-$a" "$HERE/../tui/hh_tui"; do [ -x "$b" ] && file -b "$b" 2>/dev/null | grep -q "Mach-O.*$a" && { echo "$b"; return 0; }; done; return 1; }
 case "${1:-}" in --tui-bin) tui_bin; exit $? ;; esac
 case "${1:-}" in --version|-v|-V|version) cat "$HERE/../VERSION" 2>/dev/null || echo dev; exit 0 ;; esac
+usage() {   # hh -h: for people, 80 columns, bold headings only in a terminal
+  local b="" n=""; [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && { b=$'\033[1m'; n=$'\033[0m'; }
+  cat <<EOF
+
+${b}host hygiene${n} $(cat "$HERE/../VERSION" 2>/dev/null || echo dev)
+Find what eats disk, memory and CPU. Nothing is deleted until you say so.
+
+${b}USAGE${n}
+  hh                     open the app (start here)
+  hh <command> [options]
+
+${b}LOOK AROUND${n}  (changes nothing)
+  scan                   what takes up space, and how safe it is to remove
+  plan                   what you could free, best first, with the commands
+  perf                   which apps use the most memory and CPU
+  guard                  quick disk and load check, for scripts
+  profile                the developer tools and projects found on this Mac
+
+${b}CLEAN UP${n}
+  focus                  open with safe items already ticked to free space
+  focus perf [mem|cpu]   open the Memory or CPU screen
+  apply --target PATH    preview a removal; add --run to delete
+
+${b}ALARMS${n}
+  schedule on|off        turn disk, memory and CPU alarms on or off
+  schedule status        show whether alarms are on
+  check                  run the alarm check once, now
+  snooze KIND TIME       silence one alarm
+                         KIND: disk, memory, cpu
+                         TIME: 1h, 4h, 24h, tomorrow, off
+
+${b}SETTINGS${n}
+  look [--web]           choose how the app looks (--web shows pictures)
+  config show            show your settings
+  config set KEY VALUE   change a setting
+  menu                   plain text menu
+  hello                  replay the introduction
+
+${b}OPTIONS${n}
+  -h, --help             show this help
+  -v, --version          show the version
+
+  scan, plan             --min-mb N         ignore items smaller than N MB
+                         --root DIR         also look in DIR (repeatable)
+                         --profile NAME     developer or non-developer
+  scan                   --tsv              tab-separated output
+  apply                  --yes              do not ask for each item
+                         --ask-first-ok     allow items marked "ask first"
+                         --keep-going       carry on after a failed item
+  guard                  --min-free-gb N    warn below this much free space
+                         --hard-gb N        stop below this much free space
+                         --max-load N       warn at or above this load
+                         --quiet, --kv      no output, or key=value output
+                         exit code: 0 ok, 1 warning, 2 stop
+  schedule on            --every MIN        how often to check
+
+EOF
+}
 CMD="${1:-}"; [ $# -gt 0 ] && shift
 case "$CMD" in check|schedule|snooze) exec "$HERE/schedule.sh" "$CMD" "$@" ;; esac   # scheduled disk check + launchd agent: own arguments, own script
 MINFREE="${HH_MIN_FREE_GB:-}"; HARD="${HH_HARD_GB:-}"; MAXLOAD="${HH_MAX_LOAD:-}"; POS=""; QUIET=0; KV=0
@@ -66,7 +124,7 @@ $2"; shift 2 ;;
     --kv) KV=1; shift ;;
     --root) ROOTS="$ROOTS
 $2"; shift 2 ;;
-    -h|--help) sed -n "2,24p" "$0"; exit 0 ;;
+    -h|--help) usage; exit 0 ;;
     perf) if [ "$CMD" = focus ]; then FOCUS=perf; shift; else echo "unknown argument: $1" >&2; exit 2; fi ;;
     mem|cpu) if [ "$CMD" = focus ] && [ "$FOCUS" = perf ]; then FOCUS="perf-$1"; shift; else echo "unknown argument: $1" >&2; exit 2; fi ;;
     *) if [ "$CMD" = config ]; then POS="$POS $1"; shift; else echo "unknown argument: $1" >&2; exit 2; fi ;;
@@ -91,8 +149,8 @@ case "$CMD" in
   "") if [ -t 0 ] && [ -t 1 ]; then
        if [ "${HH_CLASSIC:-0}" != 1 ] && TUIBIN="$(tui_bin)"; then HH_SCRIPT="$HERE/host-hygiene.sh" exec "$TUIBIN"; fi
        exec "$HERE/menu.sh"
-     fi; sed -n '2,23p' "$0"; exit 0 ;;
-  -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
+     fi; usage; exit 0 ;;
+  -h|--help|help) usage; exit 0 ;;
   *) echo "unknown command: $CMD" >&2; exit 2 ;;
 esac
 

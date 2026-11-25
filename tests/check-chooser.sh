@@ -31,7 +31,7 @@ hasnt "page has no plain choice" "$(cat "$pg")" 'value="plain"'
 hasnt "page has no external URL, font, image or import" "$(grep -E 'https?://|@import|url\(|src=|<link|@font-face' "$pg")" "http"
 has "server binds loopback only" "$(cat "$D/tui/lib/web_pick.dart")" "InternetAddress.loopbackIPv4, 0"
 hasnt "server never reads a file" "$(cat "$D/tui/lib/web_pick.dart")" "readAsString"
-eq "usage lists hh look" "$("$HH" --help | grep -c 'host-hygiene.sh look')" 1
+eq "usage lists hh look" "$("$HH" --help | grep -c '^  look \[--web\]')" 1
 H0="$S/nobin"; rm -rf "$H0"; mkdir -p "$H0"; cp -R "$D/scripts" "$H0/scripts"
 o="$(HOME="$DEV" "$H0/scripts/host-hygiene.sh" look 2>&1)"; has "missing binary: plain message" "$o" "needs the guided front end"; has "missing binary: says how to build" "$o" "tui/build.sh"
 o="$(HOME="$DEV" "$HH" look </dev/null 2>&1)"; has "non-tty look refuses" "$o" "needs an interactive terminal"
