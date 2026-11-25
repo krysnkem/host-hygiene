@@ -22,9 +22,12 @@ class HostHygiene < Formula
 
   def caveats
     <<~EOS
-      Run `hh` to open the interface, and `hh schedule on` for disk, memory and CPU alarms.
-      Your settings live in ~/.config/host-hygiene and are kept if you uninstall.
-      If you turned alarms on, run `hh schedule off` before `brew uninstall host-hygiene`.
+
+        Start here:  hh
+
+      Alarms for disk, memory and CPU (optional):  hh schedule on
+      Before uninstalling, if alarms are on:       hh schedule off
+      Your settings are kept in ~/.config/host-hygiene.
     EOS
   end
 
